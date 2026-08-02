@@ -283,7 +283,6 @@
     </div>
     <div class="modes" role="tablist" id="modes">
       <button class="mode" role="tab" data-mode="now" aria-selected="true">Now</button>
-      <button class="mode" role="tab" data-mode="night" aria-selected="false">Night waking</button>
       <button class="mode" role="tab" data-mode="ref" aria-selected="false">Reference</button>
     </div>
   </div>
@@ -567,7 +566,8 @@
     daytimeMax:   210,          // 3.5 hrs across both naps
     lastNapEndBy: 16 * 60 + 30, // awake from the last nap by 16:30
     nightMax:     720,          // 12 hrs
-    morningFloor:  6 * 60       // nothing before 06:00 is morning
+    morningFloor:  6 * 60,      // nothing before 06:00 is morning
+    holdFrom:      5 * 60 + 30 // from 05:30, no visits at all — just hold out
   };
 
   /* The settling loop. Naps run it inside an attempt window. */
@@ -734,7 +734,8 @@
   /* Which block of notes belongs under the current event. */
   function contentFor(ev) {
     if (!ev) return "nap";
-    if (ev.key === "wakeup" || ev.key === "night" || ev.key === "done") return "early";
+    if (ev.key === "wakeup") return "early";
+    if (ev.key === "night" || ev.key === "done") return "night";
     return ev.kind === "nap" ? "nap" : "bedtime";
   }
 
@@ -884,14 +885,6 @@
     }
     $("clockwrap").classList.remove("hide");
 
-    if (mode === "night") {
-      setContent("night");
-      renderLogButtons("night");
-      renderLoop("night", "Night waking",
-        "Tap when she wakes. The 10-minute wait starts from the crying, not the clock.");
-      return;
-    }
-
     /* --- the Now tab --- */
     var ev = currentEvent();
     if (!ev) {
@@ -908,10 +901,10 @@
     }
 
     setContent(contentFor(ev));
-    renderLogButtons(ev.kind === "wakeup" ? "wakeup" : ev.kind);
+    renderLogButtons(ev.key === "night" ? "night" : ev.kind === "wakeup" ? "wakeup" : ev.kind);
 
     /* A settling loop in progress takes over the display. */
-    if (seq) { renderLoop(seq.kind, ev.title, ""); return; }
+    if (seq) { renderLoop(seq.kind, seq.kind === "night" ? "Night waking" : ev.title, ""); return; }
 
     if (ev.phase === "done") {
       putText(title, "Day complete");
@@ -964,12 +957,30 @@
 
       if (ev.kind === "nap") {
         setControls([{ label: "She woke", cls: "primary", fn: function () { logAction("nap_awake", "Awake"); } }]);
-      } else {
-        setControls([
-          { label: "She woke",       cls: "primary", fn: function () { setMode("night"); seqStart("night"); } },
-          { label: "Up for the day", fn: function () { logAction("morning_awake", "Up for the day"); } }
-        ]);
+        return;
       }
+
+      /* Overnight, one button — the clock decides which of the plan's three
+         responses applies:
+           before 05:30   a night waking, with check-ins
+           05:30–05:59    no visits at all, hold out for 06:00
+           06:00 onward   morning */
+      if (holding) { renderHold(); return; }
+
+      setControls([{ label: "She woke", cls: "primary", fn: function () {
+        var m = nowMin();
+        /* Morning only inside 06:00–12:00. A 20:15 waking is after 06:00 on
+           the clock but is plainly still the evening. */
+        if (m >= DAY.morningFloor && m < 12 * 60) {
+          logAction("morning_awake", "Up for the day");
+        } else if (m >= DAY.holdFrom && m < DAY.morningFloor) {
+          holding = true;
+          logAction("wake_start", "Awake");
+          render();
+        } else {
+          seqStart("night");
+        }
+      } }]);
       return;
     }
 
@@ -1005,6 +1016,30 @@
     if (s.nap1.awake !== null)       return s.nap1.awake;
     if (s.morningWake !== null)      return s.morningWake;
     return null;
+  }
+
+  /* 05:30–06:00: the plan says no visits, so there is no check-in loop to
+     run — just the wait, and the two ways it can end. */
+  var holding = false;
+
+  function renderHold() {
+    var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
+    var left = DAY.morningFloor * 60 - nowSec();
+
+    putText(title, left > 0 ? "Holding for 06:00" : "Morning");
+    putClass(title, "evtitle" + (left > 0 ? " due" : ""));
+    put(meta, "Awake before 06:00 &middot; no visits");
+    putText(clock, fmt(Math.abs(left)));
+    putClass(clock, "clock" + (left > 0 ? "" : " done"));
+
+    put(st, left > 0
+      ? "Leave her without visits until as close to <b>06:00</b> as you can."
+      : "<b>Morning.</b> Take her out of the room and feed in a bright environment.");
+
+    setControls([
+      { label: "Up for the day", cls: "primary", fn: function () { holding = false; logAction("morning_awake", "Up for the day"); } },
+      { label: "Back asleep", fn: function () { holding = false; logAction("night_waking", "Back asleep"); } }
+    ]);
   }
 
   function renderLoop(kind, headline, idleText) {
