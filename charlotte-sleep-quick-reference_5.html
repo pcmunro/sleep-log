@@ -1,0 +1,1169 @@
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#12141A">
+<title>Charlotte — Sleep Reference</title>
+<style>
+  :root {
+    --bg: #12141A;
+    --surface: #1A1D25;
+    --surface-2: #22262F;
+    --line: #2E333E;
+    --ink: #E3D5BC;
+    --ink-dim: #9A9384;
+    --ink-faint: #6B6B70;
+    --amber: #E09456;
+    --amber-soft: #B87740;
+    --sage: #7FB9AE;
+    --warn: #C96A5A;
+    --mono: ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace;
+    --body: system-ui, -apple-system, "Segoe UI", sans-serif;
+    --pad: 16px;
+  }
+  .day {
+    --bg: #E9EDEC;
+    --surface: #FFFFFF;
+    --surface-2: #F2F5F4;
+    --line: #D3DBD9;
+    --ink: #1B2027;
+    --ink-dim: #5C6670;
+    --ink-faint: #8A939B;
+    --amber: #B4622A;
+    --amber-soft: #C98246;
+    --sage: #4C8A7E;
+    --warn: #A8412F;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 16px;
+    line-height: 1.5;
+    padding-bottom: 64px;
+    transition: background .3s, color .3s;
+  }
+  #app { max-width: 480px; margin: 0 auto; }
+
+  /* ---------- Top bar ---------- */
+  .bar {
+    position: sticky; top: 0; z-index: 20;
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    padding: 10px var(--pad) 0;
+  }
+  .bar-head {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .wordmark {
+    font-family: var(--mono);
+    font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .lightbtn {
+    background: none; border: 1px solid var(--line); color: var(--ink-dim);
+    font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+    padding: 5px 9px; border-radius: 999px; cursor: pointer;
+  }
+  .modes { display: flex; gap: 4px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+  .modes::-webkit-scrollbar { display: none; }
+  .mode {
+    flex: 0 0 auto;
+    background: none; border: 1px solid var(--line); color: var(--ink-dim);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 8px 12px; border-radius: 8px; cursor: pointer;
+  }
+  .mode[aria-selected="true"] { background: var(--surface-2); color: var(--ink); border-color: var(--amber-soft); }
+
+  /* ---------- Timer ---------- */
+  .clockwrap { padding: 22px var(--pad) 18px; text-align: center; }
+  .presets { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .preset {
+    background: none; border: 1px solid var(--line); color: var(--ink-dim);
+    font-family: var(--mono); font-size: 11px;
+    padding: 6px 10px; border-radius: 6px; cursor: pointer;
+  }
+  .preset[aria-pressed="true"] { border-color: var(--sage); color: var(--sage); }
+  .evtitle {
+    font-family: var(--mono); font-size: 13px; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--sage); margin-bottom: 6px;
+  }
+  .evtitle.due { color: var(--amber); }
+  .evtitle.over { color: var(--warn); }
+  .seqmeta {
+    min-height: 16px; margin-bottom: 14px;
+    font-family: var(--mono); font-size: 11px; letter-spacing: .06em;
+    color: var(--ink-faint);
+  }
+  .seqmeta b { color: var(--sage); font-weight: 400; }
+  .clock {
+    font-family: var(--mono);
+    font-size: 68px; font-weight: 300; line-height: 1;
+    font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+    color: var(--ink);
+  }
+  .clock.done { color: var(--amber); }
+  .state {
+    min-height: 44px;
+    margin: 14px auto 0; max-width: 300px;
+    font-size: 15px; color: var(--ink-dim);
+  }
+  .state b { color: var(--ink); font-weight: 600; }
+  .controls { display: flex; gap: 8px; margin-top: 18px; flex-wrap: wrap; }
+  .btn {
+    flex: 1 1 40%; padding: 15px 8px; border-radius: 10px; cursor: pointer;
+    font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+  }
+  .btn.primary { flex-basis: 100%; background: var(--amber); border-color: var(--amber); color: #17120C; font-weight: 600; }
+  .day .btn.primary { color: #FFF; }
+  .btn.ghost { color: var(--ink-dim); }
+  .btn:disabled { opacity: .35; cursor: default; }
+  /* ---------- First-run gate ---------- */
+  .gate {
+    position: fixed; inset: 0; z-index: 60;
+    background: var(--bg); display: grid; place-items: center; padding: var(--pad);
+  }
+  .gatebox { width: 100%; max-width: 320px; }
+  .gatetitle { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+  .gatehint { font-size: 13px; color: var(--ink-faint); margin: 0 0 18px; }
+  .gatelabel {
+    display: block; font-family: var(--mono); font-size: 10px;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint);
+    margin-bottom: 5px;
+  }
+  .gateinput {
+    width: 100%; padding: 13px 12px; margin-bottom: 16px;
+    background: var(--surface); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 9px;
+    font-family: var(--body); font-size: 16px;
+  }
+  #gateSave { width: 100%; }
+
+  /* ---------- Logging ---------- */
+  .logbar { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .logrow { display: flex; gap: 6px; flex-wrap: wrap; }
+  .logbtn {
+    flex: 1 1 auto; min-width: 72px;
+    padding: 12px 6px; border-radius: 9px; cursor: pointer;
+    background: var(--surface-2); border: 1px solid var(--line); color: var(--ink);
+    font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .logbtn:active { border-color: var(--sage); }
+  .logstat {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    margin-top: 10px; font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+  }
+  .logstat.ok { color: var(--sage); }
+  .logstat.bad { color: var(--warn); }
+  .retry {
+    background: none; border: 1px solid var(--warn); color: var(--warn);
+    font-family: var(--mono); font-size: 10px; letter-spacing: .08em;
+    padding: 5px 9px; border-radius: 6px; cursor: pointer;
+  }
+  .flash { animation: pulse 1.1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
+  @media (prefers-reduced-motion: reduce) { .flash { animation: none } }
+
+  /* ---------- Content ---------- */
+  .body { padding: 0 var(--pad); }
+  .note {
+    background: var(--surface-2); border-left: 2px solid var(--sage);
+    padding: 10px 12px; border-radius: 0 8px 8px 0;
+    font-size: 14px; color: var(--ink-dim); margin-bottom: 12px;
+  }
+  details {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 10px; margin-bottom: 8px; overflow: hidden;
+  }
+  summary {
+    padding: 14px; cursor: pointer; list-style: none;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 15px; font-weight: 600;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "+"; font-family: var(--mono); font-size: 18px; color: var(--ink-faint);
+  }
+  details[open] summary::after { content: "\2212"; }
+  details[open] summary { border-bottom: 1px solid var(--line); }
+  .inner { padding: 12px 14px 15px; font-size: 15px; }
+  .tag {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ink-faint);
+    display: block; margin-bottom: 3px;
+  }
+
+  ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+  ol.steps li {
+    counter-increment: s; position: relative;
+    padding: 9px 0 9px 34px; border-bottom: 1px solid var(--line);
+  }
+  ol.steps li:last-child { border-bottom: 0; }
+  ol.steps li::before {
+    content: counter(s); position: absolute; left: 0; top: 10px;
+    font-family: var(--mono); font-size: 11px; color: var(--sage);
+    border: 1px solid var(--line); border-radius: 50%;
+    width: 22px; height: 22px; display: grid; place-items: center;
+  }
+  ol.steps li small { display: block; color: var(--ink-faint); font-size: 13px; }
+  ol.steps li.final::before { border-color: var(--amber); color: var(--amber); }
+  ol.steps li.final { color: var(--amber); font-weight: 600; }
+
+  ul.plain { margin: 0; padding-left: 18px; }
+  ul.plain li { margin-bottom: 8px; }
+  ul.plain li:last-child { margin-bottom: 0; }
+  ul.nope { list-style: none; margin: 0; padding: 0; }
+  ul.nope li {
+    padding: 8px 0 8px 24px; position: relative;
+    border-bottom: 1px solid var(--line); font-size: 15px;
+  }
+  ul.nope li:last-child { border-bottom: 0; }
+  ul.nope li::before {
+    content: "\00D7"; position: absolute; left: 4px; top: 8px;
+    color: var(--warn); font-family: var(--mono);
+  }
+
+  .ladder { display: flex; flex-direction: column; gap: 6px; }
+  .rung { display: flex; gap: 10px; align-items: flex-start; padding: 9px 10px; background: var(--surface-2); border-radius: 8px; }
+  .rung span { font-family: var(--mono); font-size: 11px; color: var(--sage); padding-top: 3px; }
+  .rung.avoid span { color: var(--warn); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td { padding: 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: 0; }
+  td:first-child { font-family: var(--mono); font-size: 12px; color: var(--sage); white-space: nowrap; padding-right: 12px; width: 1%; }
+  td.warnrow { color: var(--amber); }
+
+  .foot { padding: 26px var(--pad) 10px; font-size: 12px; color: var(--ink-faint); line-height: 1.6; }
+  .hide { display: none; }
+  :focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
+</style>
+
+<div id="gate" class="gate hide">
+  <div class="gatebox">
+    <div class="gatetitle">Set up this phone</div>
+    <p class="gatehint">Just once. Ask Patrick for the PIN.</p>
+    <label class="gatelabel" for="whoIn">Your name</label>
+    <input id="whoIn" class="gateinput" type="text" autocomplete="name" placeholder="Jennie">
+    <label class="gatelabel" for="pinIn">PIN</label>
+    <input id="pinIn" class="gateinput" type="password" autocomplete="off">
+    <button class="btn primary" id="gateSave">Save</button>
+    <p class="gatehint" id="gateMsg"></p>
+  </div>
+</div>
+
+<div id="app">
+  <div class="bar">
+    <div class="bar-head">
+      <div class="wordmark">Charlotte &middot; Sleep</div>
+      <button class="lightbtn" id="lightToggle">DAY MODE</button>
+    </div>
+    <div class="modes" role="tablist" id="modes">
+      <button class="mode" role="tab" data-mode="now" aria-selected="true">Now</button>
+      <button class="mode" role="tab" data-mode="night" aria-selected="false">Night waking</button>
+      <button class="mode" role="tab" data-mode="ref" aria-selected="false">Reference</button>
+    </div>
+  </div>
+
+  <div class="clockwrap" id="clockwrap">
+    <div class="evtitle" id="evTitle"></div>
+    <div class="seqmeta" id="seqMeta"></div>
+    <div class="clock" id="clock">--:--</div>
+    <div class="state" id="state"></div>
+    <div class="controls" id="controls"></div>
+    <div class="logbar" id="logbar">
+      <div class="logrow" id="logrow"></div>
+      <div class="logstat" id="logstat">
+        <span id="logmsg">Ready to log</span>
+        <button class="retry hide" id="retryBtn">Retry</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="body" id="content"></div>
+
+  <div class="foot">
+    Reorganized from Lindsay Lewis Sleep's plan for Charlotte. No advice added or changed.<br>
+    Health questions &rarr; your family doctor. Voxer for plan questions, Mon&ndash;Sat 8&ndash;6.
+  </div>
+</div>
+
+<script>
+(function () {
+
+  /* ==================================================================
+     CONFIG — the PIN is NOT stored here. Each person enters it once on
+     their own phone, so this file is safe to host publicly.
+     ================================================================== */
+  var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbycadn2BK4i-UnHj9ndKe7eAq01QHAsPIFTBpaBgt7fxFqYPg4zrV-ujnrL2ozjVlra/exec";
+  /* ================================================================== */
+
+  /* Remembered per device. Falls back to memory if storage is blocked. */
+  var store = {
+    get: function (k) { try { return localStorage.getItem(k); } catch (e) { return this._m ? this._m[k] : null; } },
+    set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { this._m = this._m || {}; this._m[k] = v; } },
+    _m: null
+  };
+
+
+  var MODES = {
+    bedtime: {
+      html: [
+        '<div class="note">Around 7:00 PM. Bottle goes <b>first</b> so the feed never becomes the thing that puts her to sleep.</div>',
+        details("Routine", true,
+          '<ol class="steps">' +
+          li("Bottle", "First step, not last") +
+          li("Bath", "") +
+          li("Diaper, PJs", "") +
+          li("Sleep sack &amp; books", "") +
+          li("Bedtime song, white noise on", "") +
+          li('Into the crib &mdash; wide awake', 'Key phrase: "Night-night time, Charlotte." Then leave.', true) +
+          '</ol>'),
+        details("If you go in: the ladder", false,
+          '<span class="tag">Stop as soon as she calms, then leave</span>' +
+          '<div class="ladder">' +
+          rung("01", "<b>Voice</b> &mdash; loud shushing, humming, key phrase, one round of the song. A few seconds.") +
+          rung("02", "<b>Touch</b> &mdash; hold her hand, pat her back, help her lie down, stroke her face.") +
+          rung("03", "<b>Pick up</b> &mdash; generally avoid. Only if she's really worked up, and only briefly.", true) +
+          '</div><p style="color:var(--ink-dim);font-size:14px;margin:12px 0 0">Aim for a little less help each night. It isn\'t your job to put her to sleep &mdash; only to support her through the change.</p>'),
+        details("Don't", false,
+          '<ul class="nope">' +
+          '<li>Let her get drowsy on the bottle</li>' +
+          '<li>Put her down asleep or half-asleep</li>' +
+          '<li>Respond before the 10 minutes are up</li>' +
+          '<li>Interrupt rhythmic self-soothing</li>' +
+          '<li>End the routine with the feed</li>' +
+          '<li>Rock, feed to sleep, contact sleep or co-sleep &mdash; not even once</li>' +
+          '<li>Reinsert a pacifier she can\'t manage herself</li>' +
+          '</ul>'),
+        details("If it isn't working", false,
+          '<span class="tag">Bedtime reset &mdash; after 60 min with no sign of settling</span>' +
+          '<ol class="steps">' +
+          li("Pick her up", "") +
+          li("Out of the sleep sack", "") +
+          li("Walk until she's calm", "Calm, not asleep") +
+          li("Short routine", "Diaper, sleep sack, one book under dim red light, goodnight") +
+          li("Back in the crib awake", "", true) +
+          '</ol><p style="color:var(--ink-dim);font-size:14px;margin:12px 0 0">There\'s no hard time limit. If she\'s making progress, keep going.</p>')
+      ].join("")
+    },
+
+    nap: {
+      html: [
+        '<div class="note">Nap 1 around 9:30, Nap 2 around 2:00&ndash;2:30. Nap training starts the day <b>after</b> nights begin.</div>',
+        details("Routine", true,
+          '<span class="tag">Mini version of bedtime &mdash; no feed</span>' +
+          '<ol class="steps">' +
+          li("Diaper", "Change clothes if needed") +
+          li("Sleep sack", "") +
+          li("Books or song", "") +
+          li("White noise on", "") +
+          li("Into the crib &mdash; wide awake", "Same check-ins as bedtime", true) +
+          '</ol>'),
+        details("The attempt sequence", true,
+          '<table><tbody>' +
+          '<tr><td>45&ndash;60 min</td><td>First try. Asleep? Wait 4&ndash;5 min after she wakes before going in.</td></tr>' +
+          '<tr><td>15 min</td><td>Break. No feed, nothing stimulating.</td></tr>' +
+          '<tr><td>30 min</td><td>Repeat the routine, crib awake, second try.</td></tr>' +
+          '<tr><td class="warnrow">Still up</td><td class="warnrow">Emergency nap &mdash; stroller walk or drive. That counts.</td></tr>' +
+          '</tbody></table>'),
+        details("Don't", false,
+          '<ul class="nope">' +
+          '<li>Contact naps or bedsharing &mdash; these lead to crib refusal</li>' +
+          '<li>Feed during the 15-minute break</li>' +
+          '<li>Any sleep prop on the way down</li>' +
+          '<li>Bottle within 45 min of the nap starting</li>' +
+          '</ul>'),
+        details("Other situations", false,
+          '<table><tbody>' +
+          '<tr><td>Short nap</td><td>Under an hour and she\'s awake? Treat it like a night waking &mdash; leave her 10&ndash;15 min. Not back asleep, get her up and try again next nap.</td></tr>' +
+          '<tr><td>Long nap</td><td>Up to 2 hrs is fine earlier in the day. If total daytime sleep nears 3.5 hrs, wake her gently: open the door, kill the white noise, open the curtains.</td></tr>' +
+          '<tr><td>Car nap</td><td>Let her finish it, then resume the schedule at home.</td></tr>' +
+          '<tr><td>Micro nap</td><td>Under 15 min in the car &mdash; keep her up ~60&ndash;90 min, then try the nap or bedtime depending on the hour.</td></tr>' +
+          '<tr><td>Burnt out</td><td>Stroller or car is a legitimate second option. Use it, reset next nap.</td></tr>' +
+          '<tr><td>Bad nap day</td><td>Move bedtime earlier.</td></tr>' +
+          '</tbody></table>'),
+        details("What's normal", false,
+          '<ul class="plain">' +
+          '<li>Nights consolidate first. Naps follow, often not visibly until week 2.</li>' +
+          '<li>5&ndash;10 min to fall asleep once this settles. Longer at first.</li>' +
+          '<li>Nap length improves with time.</li>' +
+          '</ul>')
+      ].join("")
+    },
+
+    night: {
+      html: [
+        '<div class="note">She wakes fully between sleep cycles, makes noise, cries, and often resettles alone. Going in fast takes that chance away.</div>',
+        details("What to do", true,
+          '<ol class="steps">' +
+          li("Start the timer when she starts crying", "") +
+          li("Wait 10 minutes", "") +
+          li("Still protesting? Go in 30&ndash;60 sec", "Voice, then touch, then pick up only if needed") +
+          li("Leave again", "Even if she's still crying") +
+          li("Restart the timer, repeat", "", true) +
+          '</ol>'),
+        details("Listen for this", false,
+          '<p style="margin:0">Rhythmic, repetitive fussing &mdash; the roller-coaster cry, a creaky-door sound, an "e-i-e-i-e-i." That is <b>self-soothing</b>. Do not interrupt it. It\'s different from full escalation.</p>' +
+          '<p style="margin:12px 0 0;color:var(--ink-dim);font-size:14px">If she quiets for more than 30 seconds, stop the timer and leave her. If she starts again, restart it.</p>'),
+        details("Don't", false,
+          '<ul class="nope">' +
+          '<li>Night feeds &mdash; eliminated under this plan</li>' +
+          '<li>Respond inside the 10 minutes</li>' +
+          '<li>Go in while she\'s calming herself</li>' +
+          '<li>Stay in the room past 60 seconds</li>' +
+          '</ul>'),
+        details("If it isn't working", false,
+          '<span class="tag">Bedtime reset &mdash; after 1 hr with no sign of settling</span>' +
+          '<p style="margin:0">Pick her up, out of the sleep sack, walk until calm but not asleep, short routine under dim red light, back in the crib awake.</p>')
+      ].join("")
+    },
+
+    early: {
+      html: [
+        '<div class="note">Nothing before <b>6:00 AM</b> counts as morning. Expected wake is 10.5&ndash;12 hrs after bedtime.</div>',
+        details("What to do", true,
+          '<table><tbody>' +
+          '<tr><td>Before 5:30</td><td>Treat it as a night waking. Full check-in cycle.</td></tr>' +
+          '<tr><td>After 5:30</td><td>No visits. Hold out as close to 6:00 as you can.</td></tr>' +
+          '<tr><td>At 6:00</td><td>Take her <b>out of the room</b> and feed in a bright environment. That\'s the signal morning has started.</td></tr>' +
+          '<tr><td>First feed</td><td>Delay it 10&ndash;15 minutes after waking.</td></tr>' +
+          '<tr><td class="warnrow">12 hrs</td><td class="warnrow">Still asleep 12 hrs after bedtime? Wake her.</td></tr>' +
+          '</tbody></table>'),
+        details("Why she might be waking early", false,
+          '<ul class="plain">' +
+          '<li>Light in the room &mdash; even a little causes early wakings. Check the blackout.</li>' +
+          '<li>White noise off overnight, so an outside noise wakes her.</li>' +
+          '<li>Too much daytime sleep &mdash; cap at 3&ndash;3.5 hrs.</li>' +
+          '<li>Last nap ending after 4:30 PM, pushing bedtime late.</li>' +
+          '</ul>')
+      ].join("")
+    },
+
+    ref: {
+      html: [
+        details("Daily schedule", true,
+          '<table><tbody>' +
+          '<tr><td>6:30&ndash;7:00</td><td>Wake, feed, play, breakfast</td></tr>' +
+          '<tr><td>~9:30</td><td>Nap 1</td></tr>' +
+          '<tr><td>11:00</td><td>Wake + feed</td></tr>' +
+          '<tr><td>12:30</td><td>Lunch + milk</td></tr>' +
+          '<tr><td>~2:00&ndash;2:30</td><td>Nap 2</td></tr>' +
+          '<tr><td>3:30</td><td>Awake + feed</td></tr>' +
+          '<tr><td>4:30</td><td>Optional milk</td></tr>' +
+          '<tr><td>5:30</td><td>Dinner</td></tr>' +
+          '<tr><td>~7:00</td><td>Bottle, then bedtime routine</td></tr>' +
+          '</tbody></table>' +
+          '<p style="margin:12px 0 0;font-size:14px;color:var(--ink-dim)">Anchors, not laws &mdash; they shift with the actual wake time. Max daytime sleep 3&ndash;3.5 hrs. <b style="color:var(--amber)">Awake from the last nap by 4:30 PM.</b></p>'),
+        details("Tired cues &mdash; the decoy wave", false,
+          '<p style="margin:0">There are usually two waves. The first hits ~60&ndash;90 min into the wake window &mdash; <b>that one is a decoy.</b> Distract and engage; she\'ll perk up. The second wave is when you start the routine.</p>' +
+          '<p style="margin:12px 0 0;color:var(--ink-dim);font-size:14px">Yawning &middot; rubbing eyes &middot; red eyebrows &middot; staring into space &middot; fussy</p>'),
+        details("Feeding rules", false,
+          '<span class="tag">Wake &rarr; eat &rarr; play &rarr; sleep</span>' +
+          '<ul class="plain">' +
+          '<li>Feed 15&ndash;30 min after waking. Never right before a nap.</li>' +
+          '<li>Short nap and not due for a feed? Offer it 30&ndash;60 min into the wake window.</li>' +
+          '<li>Keep her wide awake through the feed &mdash; bright room, engage with her. Slight drowsiness bleeds off sleep pressure.</li>' +
+          '<li>No bottle within 45 min of a nap start.</li>' +
+          '<li>Bedtime bottle is step one, not the last thing before the crib.</li>' +
+          '<li>No night feeds.</li>' +
+          '</ul>'),
+        details("Room checklist", false,
+          '<ul class="plain">' +
+          '<li>Very dark &mdash; blackout curtains</li>' +
+          '<li>18&ndash;21&deg;C</li>' +
+          '<li>White noise away from the crib, max 50&ndash;55 dB, off between sleeps</li>' +
+          '<li>Bare crib &mdash; no blankets, loveys, bumpers, toys</li>' +
+          '<li>Firm flat mattress, fitted sheet only</li>' +
+          '<li>Arms-free sleep sack. Weighted sacks are not safe.</li>' +
+          '<li>No mobiles, no night lights</li>' +
+          '<li>Back to sleep, always</li>' +
+          '</ul>'),
+        details("Dressing by room temp", false,
+          '<table><tbody>' +
+          '<tr><td>&lt;17&deg;</td><td>2.5 TOG sack + sleeper + bodysuit + socks</td></tr>' +
+          '<tr><td>18&ndash;19&deg;</td><td>2.5 TOG sack + sleeper + bodysuit</td></tr>' +
+          '<tr><td>20&ndash;21&deg;</td><td>1.0 TOG sack + sleeper + bodysuit</td></tr>' +
+          '<tr><td>22&ndash;23&deg;</td><td>1.0 TOG sack + sleeper</td></tr>' +
+          '<tr><td>24&ndash;25&deg;</td><td>0.5 TOG sack + bodysuit</td></tr>' +
+          '<tr><td>26&deg;+</td><td>Bodysuit only</td></tr>' +
+          '</tbody></table>'),
+        details("First two weeks", false,
+          '<table><tbody>' +
+          '<tr><td>Days 1&ndash;7</td><td>Extra clingy in daylight hours. Lots of daytime cuddles.</td></tr>' +
+          '<tr><td>Days 1&ndash;7</td><td>Crying at the start of the routine. Fades in about a week.</td></tr>' +
+          '<tr><td>Days 1&ndash;7</td><td>Whining on entering the bedroom, even for a diaper change. Play on the floor in there during the day.</td></tr>' +
+          '<tr><td class="warnrow">Nights 4&ndash;6</td><td class="warnrow">Extinction burst &mdash; sudden full relapse. 1&ndash;2 days if you don\'t deviate.</td></tr>' +
+          '<tr><td>Week 1</td><td>Nights consolidate first.</td></tr>' +
+          '<tr><td>Week 2</td><td>Naps lengthen.</td></tr>' +
+          '</tbody></table>' +
+          '<p style="margin:12px 0 0;font-size:14px;color:var(--ink-dim)">First-night time-to-sleep averages 45&ndash;60 min across her clients. A temporarily hoarse voice clears in a few days. Progress isn\'t linear.</p>'),
+        details("Non-negotiables", true,
+          '<ol class="steps">' +
+          li("Crib. Awake. Every time.", "") +
+          li("Ten minutes before you respond.", "") +
+          li("Never interrupt rhythmic self-soothing.", "") +
+          li("Feed at the start of the routine, never the end.", "") +
+          li("No contact naps, no bedsharing, no feeding to sleep.", "") +
+          li("Both parents run bedtime and naps.", "") +
+          li("Nothing before 6:00 AM is morning.", "", true) +
+          '</ol>'),
+        details("Support", false,
+          '<table><tbody>' +
+          '<tr><td>Log</td><td>Update throughout the day, every day.</td></tr>' +
+          '<tr><td>Voxer</td><td>Preferred. Checked several times daily Mon&ndash;Sat 8am&ndash;6pm. Extended to 9pm the first two nights. Sundays answered Monday.</td></tr>' +
+          '<tr><td>Calls</td><td>Two 30-min calls. Log filled in first. Missed call with no contact within 1 hr counts as one. From 902-240-2542.</td></tr>' +
+          '</tbody></table>')
+      ].join("")
+    }
+  };
+
+  function li(t, sub, final) {
+    return '<li' + (final ? ' class="final"' : '') + '>' + t + (sub ? '<small>' + sub + '</small>' : '') + '</li>';
+  }
+  function rung(n, t, avoid) {
+    return '<div class="rung' + (avoid ? ' avoid' : '') + '"><span>' + n + '</span><div>' + t + '</div></div>';
+  }
+  function details(title, open, inner) {
+    return '<details' + (open ? ' open' : '') + '><summary>' + title + '</summary><div class="inner">' + inner + '</div></details>';
+  }
+
+  /* ==================================================================
+     THE DAY — four events, always in this order. Adjust the times here.
+     Lindsay's plan writes nap 2 as 2:00/2:30 and the bedtime routine
+     starting at 7:00; these are the in-crib targets.
+     ================================================================== */
+
+  var DAY = {
+    wakeAt:  7 * 60,            // 07:00
+    nap1At:  9 * 60 + 30,       // 09:30
+    nap2At: 14 * 60 + 30,       // 14:30
+    bedAt:  19 * 60 + 30,       // 19:30
+
+    singleNapMax: 120,          // a single nap, earlier in the day
+    daytimeMax:   210,          // 3.5 hrs across both naps
+    lastNapEndBy: 16 * 60 + 30, // awake from the last nap by 16:30
+    nightMax:     720,          // 12 hrs
+    morningFloor:  6 * 60       // nothing before 06:00 is morning
+  };
+
+  /* The settling loop. Naps run it inside an attempt window. */
+  var SEQ = {
+    nap: {
+      startLabel: "Put her in the crib", startAction: "nap_crib",
+      asleepLabel: "She's asleep",       asleepAction: "nap_asleep",
+      wait: 600, checkin: 60, resetAfter: null,
+      attempts: [2700, 1800], breakSecs: 900
+    },
+    bedtime: {
+      startLabel: "Put her in the crib", startAction: "bed_crib",
+      asleepLabel: "She's asleep",       asleepAction: "bed_asleep",
+      wait: 600, checkin: 60, resetAfter: 3600, attempts: null
+    },
+    night: {
+      startLabel: "She woke",     startAction: "wake_start",
+      asleepLabel: "Back asleep", asleepAction: "night_waking",
+      wait: 600, checkin: 60, resetAfter: 3600, attempts: null
+    }
+  };
+
+  var LOG_BUTTONS = {
+    wakeup:  [
+      { label: "Fed",   action: "feed", ask: "Duration or ounces (optional)", optional: true },
+      { label: "Night /10", action: "rate", ask: "Rate the night 1\u201310 (10 = excellent)" },
+      { label: "Note",  action: "note", note: true }
+    ],
+    nap: [
+      { label: "In crib", action: "nap_crib" },
+      { label: "Asleep",  action: "nap_asleep" },
+      { label: "Awake",   action: "nap_awake" },
+      { label: "Note",    action: "note", note: true }
+    ],
+    bedtime: [
+      { label: "In crib",    action: "bed_crib" },
+      { label: "Asleep",     action: "bed_asleep" },
+      { label: "Crying /10", action: "cry_scale", ask: "Crying scale 1\u201310 (10 = hysterical)" },
+      { label: "Note",       action: "note", note: true }
+    ],
+    night: [
+      { label: "Woke",        action: "wake_start" },
+      { label: "Back asleep", action: "night_waking" },
+      { label: "Fed",         action: "feed", ask: "Duration or ounces (optional)", optional: true },
+      { label: "Note",        action: "note", note: true }
+    ],
+    ref: []
+  };
+
+  var mode = "now", timer = null, remain = null, running = false, wake = null;
+  var queue = [], sending = false, sheetState = null, contentKey = null;
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- clock helpers ---------- */
+
+  function nowSec() {
+    var d = new Date();
+    return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+  }
+  function nowMin() { return nowSec() / 60; }
+
+  function fmt(s) {
+    s = Math.max(0, Math.round(s));
+    if (s >= 3600) {
+      return Math.floor(s / 3600) + ":" + String(Math.floor(s % 3600 / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+    }
+    return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  }
+
+  function dur(mins) {
+    if (mins < 0) mins = 0;
+    var h = Math.floor(mins / 60), m = Math.floor(mins % 60);
+    return h ? h + "h " + String(m).padStart(2, "0") + "m" : m + "m";
+  }
+
+  function hhmm(mins) {
+    mins = ((Math.round(mins) % 1440) + 1440) % 1440;
+    return String(Math.floor(mins / 60)).padStart(2, "0") + ":" + String(mins % 60).padStart(2, "0");
+  }
+
+  function elapsedSince(start, now) {
+    var e = now - start;
+    return e < 0 ? e + 1440 : e;
+  }
+
+  function clockOf(d) {
+    return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  }
+
+  /* ---------- where are we in the day? ----------
+     The sheet's own row order is the sequence. Walk it and stop at the
+     first cell still showing 0:00 — that is the next thing to record.
+     This catches states a field-by-field check misses, like "in the crib
+     but not asleep yet", and it means both phones agree without either
+     of them holding local state. */
+
+  var STEPS = [
+    { row: 11, grp: null,   field: "morningWake", event: "wakeup",  kind: "wakeup",  title: "Wake-up",     at: "wakeAt" },
+    { row: 14, grp: "nap1", field: "crib",        event: "nap1",    kind: "nap",     title: "Nap 1",       at: "nap1At" },
+    { row: 15, grp: "nap1", field: "asleep",      event: "nap1",    kind: "nap",     title: "Nap 1",       at: "nap1At" },
+    { row: 16, grp: "nap1", field: "awake",       event: "nap1",    kind: "nap",     title: "Nap 1",       at: "nap1At" },
+    { row: 21, grp: "nap2", field: "crib",        event: "nap2",    kind: "nap",     title: "Nap 2",       at: "nap2At" },
+    { row: 22, grp: "nap2", field: "asleep",      event: "nap2",    kind: "nap",     title: "Nap 2",       at: "nap2At" },
+    { row: 23, grp: "nap2", field: "awake",       event: "nap2",    kind: "nap",     title: "Nap 2",       at: "nap2At" },
+    { row: 30, grp: "bed",  field: "crib",        event: "bedtime", kind: "bedtime", title: "Bedtime",     at: "bedAt" },
+    { row: 31, grp: "bed",  field: "asleep",      event: "bedtime", kind: "bedtime", title: "Bedtime",     at: "bedAt" },
+    { row: 32, grp: "bed",  field: "awake",       event: "night",   kind: "bedtime", title: "Night sleep", at: "wakeAt" }
+  ];
+
+  function valueAt(step) {
+    var s = sheetState;
+    if (!s) return null;
+    return step.grp ? s[step.grp][step.field] : s[step.field];
+  }
+
+  /* The step we're waiting on, plus the times already recorded for it. */
+  function currentEvent() {
+    if (!sheetState) return null;
+
+    var step = null;
+    for (var i = 0; i < STEPS.length; i++) {
+      if (valueAt(STEPS[i]) === null) { step = STEPS[i]; break; }
+    }
+    if (!step) return { key: "done", kind: "bedtime", title: "Day complete", phase: "done", at: DAY.bedAt };
+
+    var grp = step.grp ? sheetState[step.grp] : null;
+
+    return {
+      key:   step.event,
+      kind:  step.kind,
+      title: step.title,
+      row:   step.row,
+      /* upcoming = nothing logged yet · settling = in the crib, not asleep
+         · sleeping = asleep, not yet up */
+      phase: step.field === "asleep" ? "settling"
+           : step.field === "awake"  ? "sleeping"
+           : "upcoming",
+      at:       DAY[step.at],
+      cribAt:   grp ? grp.crib : null,
+      asleepAt: grp ? grp.asleep : null
+    };
+  }
+
+  function nextAfter(ev) {
+    if (ev.key === "wakeup")  return { title: "Nap 1",   at: DAY.nap1At };
+    if (ev.key === "nap1")    return { title: "Nap 2",   at: DAY.nap2At };
+    if (ev.key === "nap2")    return { title: "Bedtime", at: DAY.bedAt };
+    return { title: "Wake-up", at: DAY.wakeAt };
+  }
+
+  /* Cap on a sleep in progress, in minutes. */
+  function capFor(ev) {
+    if (ev.kind !== "nap") return DAY.nightMax;
+    if (ev.key === "nap1") return DAY.singleNapMax;
+
+    var used = 0;
+    if (sheetState.nap1.asleep !== null && sheetState.nap1.awake !== null) {
+      used = elapsedSince(sheetState.nap1.asleep, sheetState.nap1.awake);
+    }
+    var from = ev.asleepAt !== null ? ev.asleepAt : ev.at;
+    return Math.max(0, Math.min(DAY.daytimeMax - used, DAY.lastNapEndBy - from));
+  }
+
+  /* Which block of notes belongs under the current event. */
+  function contentFor(ev) {
+    if (!ev) return "nap";
+    if (ev.key === "wakeup" || ev.key === "night" || ev.key === "done") return "early";
+    return ev.kind === "nap" ? "nap" : "bedtime";
+  }
+
+  /* ---------- timer plumbing ---------- */
+
+  function stop() { running = false; clearInterval(timer); timer = null; releaseWake(); }
+  function buzz() { if (navigator.vibrate) { try { navigator.vibrate([120, 90, 120]); } catch (e) {} } }
+
+  function requestWake() {
+    if (!navigator.wakeLock) return;
+    navigator.wakeLock.request("screen").then(function (w) { wake = w; }).catch(function () {});
+  }
+  function releaseWake() { if (wake) { try { wake.release(); } catch (e) {} wake = null; } }
+
+  function run(secs) {
+    stop();
+    remain = secs;
+    running = true;
+    timer = setInterval(function () {
+      remain--;
+      if (remain <= 0) { remain = 0; stop(); buzz(); onExpire(); }
+      render();
+    }, 1000);
+    requestWake();
+    render();
+  }
+
+  /* ---------- the settling loop ---------- */
+
+  var seq = null;   // { cfg, kind, phase, startedAt, attempt, attemptStartedAt }
+
+  function seqElapsed()     { return seq ? Math.floor((Date.now() - seq.startedAt) / 1000) : 0; }
+  function attemptElapsed() { return seq && seq.attemptStartedAt ? Math.floor((Date.now() - seq.attemptStartedAt) / 1000) : 0; }
+  function attemptLimit()   { return seq && seq.cfg.attempts ? seq.cfg.attempts[seq.attempt] : null; }
+
+  function phase(p, secs) {
+    seq.phase = p;
+    if (secs === null) { stop(); remain = null; render(); }
+    else run(secs);
+  }
+
+  function seqStart(kind) {
+    logAction(SEQ[kind].startAction, SEQ[kind].startLabel);
+    seqResume(kind);
+  }
+
+  /* Same loop, but she's already in the crib — don't log it twice. */
+  function seqResume(kind) {
+    var cfg = SEQ[kind];
+    seq = { cfg: cfg, kind: kind, phase: "wait", startedAt: Date.now(), attempt: 0, attemptStartedAt: Date.now() };
+    run(cfg.wait);
+  }
+
+  function seqAsleep() {
+    var cfg = seq.cfg;
+    logAction(cfg.asleepAction, cfg.asleepLabel);
+    seqStop();
+  }
+
+  function seqStop() { stop(); seq = null; remain = null; render(); }
+
+  function onExpire() {
+    if (!seq) return;
+    var over = attemptLimit() !== null && attemptElapsed() >= attemptLimit();
+    if (seq.phase === "wait")         seq.phase = over ? "attemptDone" : "waitDone";
+    else if (seq.phase === "checkin") seq.phase = "checkinDone";
+    else if (seq.phase === "break")   seq.phase = "breakDone";
+  }
+
+  /* The attempt window can run out mid-wait, not only at an expiry. */
+  function watchAttempt() {
+    if (!seq || !seq.cfg.attempts) return;
+    if (seq.phase !== "wait" && seq.phase !== "checkin") return;
+    if (attemptElapsed() >= attemptLimit()) { stop(); buzz(); phase("attemptDone", null); }
+  }
+
+  var TEXT = {
+    wait:        "Wait. Don't go in.",
+    waitDone:    "<b>Go in for 30&ndash;60 seconds.</b> Voice first, then touch.",
+    resetOffer:  "An hour with no sign of settling. <b>A reset is an option</b> &mdash; or keep going if she's making progress.",
+    checkin:     "Voice, then touch. Leave when this ends.",
+    checkinDone: "<b>Leave the room now</b>, even if she's still crying.",
+    attemptDone: "<b>Take a 15-minute break.</b> No feed, nothing stimulating.",
+    "break":     "Keep it calm and low-stimulation.",
+    breakDone:   "<b>Second try.</b> Repeat the nap routine, crib wide awake.",
+    exhausted:   "<b>Emergency nap.</b> Stroller walk or a drive &mdash; that counts as the nap."
+  };
+
+  /* ---------- render ---------- */
+
+  function setControls(list) {
+    var c = $("controls");
+    c.innerHTML = list.map(function (b) {
+      return '<button class="btn ' + (b.cls || "") + '">' + b.label + "</button>";
+    }).join("");
+    Array.prototype.forEach.call(c.children, function (el, i) { el.onclick = list[i].fn; });
+  }
+
+  function setContent(key) {
+    if (contentKey === key) return;
+    contentKey = key;
+    $("content").innerHTML = MODES[key].html;
+  }
+
+  function render() {
+    var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
+
+    if (mode === "ref") {
+      $("clockwrap").classList.add("hide");
+      setContent("ref");
+      renderLogButtons("ref");
+      return;
+    }
+    $("clockwrap").classList.remove("hide");
+
+    if (mode === "night") {
+      setContent("night");
+      renderLogButtons("night");
+      renderLoop("night", "Night waking",
+        "Tap when she wakes. The 10-minute wait starts from the crying, not the clock.");
+      return;
+    }
+
+    /* --- the Now tab --- */
+    var ev = currentEvent();
+    if (!ev) {
+      title.textContent = "";
+      title.className = "evtitle";
+      meta.textContent = "";
+      clock.textContent = "--:--";
+      clock.className = "clock";
+      st.innerHTML = "Waiting for the log\u2026";
+      setControls([]);
+      setContent("nap");
+      renderLogButtons("nap");
+      return;
+    }
+
+    setContent(contentFor(ev));
+    renderLogButtons(ev.kind === "wakeup" ? "wakeup" : ev.kind);
+
+    /* A settling loop in progress takes over the display. */
+    if (seq) { renderLoop(seq.kind, ev.title, ""); return; }
+
+    if (ev.phase === "done") {
+      title.textContent = "Day complete";
+      title.className = "evtitle";
+      meta.textContent = "";
+      clock.textContent = "--:--";
+      clock.className = "clock";
+      st.innerHTML = "Everything for this plan night is logged.";
+      setControls([]);
+      return;
+    }
+
+    /* In the crib, not asleep yet — either phone can pick up the loop. */
+    if (ev.phase === "settling") {
+      var down = ev.cribAt !== null ? ev.cribAt : nowMin();
+      title.textContent = ev.title + " \u00b7 in the crib";
+      title.className = "evtitle";
+      meta.innerHTML = "In the crib since <b>" + hhmm(down) + "</b>";
+      clock.textContent = fmt(elapsedSince(down, nowMin()) * 60);
+      clock.className = "clock";
+      st.innerHTML = "Waiting for her to settle. Start the 10-minute wait when she starts crying.";
+      setControls([
+        { label: "Start the wait", cls: "primary", fn: function () { seqResume(ev.kind); } },
+        { label: "She's asleep", fn: function () { logAction(SEQ[ev.kind].asleepAction, "Asleep"); } }
+      ]);
+      return;
+    }
+
+    if (ev.phase === "sleeping") {
+      var from  = ev.asleepAt !== null ? ev.asleepAt : ev.at;
+      var slept = elapsedSince(from, nowMin());
+      var cap   = capFor(ev);
+      var over  = slept >= cap;
+
+      title.textContent = ev.title + " \u00b7 asleep";
+      title.className = "evtitle" + (over ? " over" : "");
+      meta.innerHTML = "Down at <b>" + hhmm(from) + "</b>";
+      clock.textContent = fmt(slept * 60);
+      clock.className = "clock" + (over ? " done flash" : "");
+
+      if (over) {
+        st.innerHTML = ev.kind === "nap"
+          ? "<b>Over the cap. Wake her now</b> &mdash; open the door, kill the white noise, open the curtains."
+          : "<b>12 hours.</b> Time to wake her.";
+      } else if (ev.kind === "nap") {
+        st.innerHTML = "Max <b>" + dur(cap) + "</b> &mdash; up by <b>" + hhmm(from + cap) + "</b>.";
+      } else {
+        st.innerHTML = "Nothing before <b>06:00</b>. Wake her by <b>" + hhmm(from + cap) + "</b>.";
+      }
+
+      if (ev.kind === "nap") {
+        setControls([{ label: "She woke", cls: "primary", fn: function () { logAction("nap_awake", "Awake"); } }]);
+      } else {
+        setControls([
+          { label: "She woke",       cls: "primary", fn: function () { setMode("night"); seqStart("night"); } },
+          { label: "Up for the day", fn: function () { logAction("morning_awake", "Up for the day"); } }
+        ]);
+      }
+      return;
+    }
+
+    /* Upcoming. */
+    var secs = ev.at * 60 - nowSec();
+    var late = secs < 0;
+    var then = nextAfter(ev);
+
+    title.textContent = ev.title + (late ? " \u00b7 overdue" : " \u00b7 next");
+    title.className = "evtitle" + (late ? " due" : "");
+    clock.textContent = fmt(Math.abs(secs));
+    clock.className = "clock" + (late ? " done" : "");
+
+    var bits = ["Scheduled <b>" + hhmm(ev.at) + "</b>"];
+    if (ev.key !== "wakeup") bits.push("then " + then.title.toLowerCase() + " <b>" + hhmm(then.at) + "</b>");
+    var since = awakeSince();
+    if (since !== null) bits.push("awake <b>" + dur(elapsedSince(since, nowMin())) + "</b>");
+    meta.innerHTML = bits.join(" &middot; ");
+
+    if (ev.kind === "wakeup") {
+      st.innerHTML = "Nothing before <b>06:00</b> counts as morning. After 05:30, no visits &mdash; hold out as close to 06:00 as you can.";
+      setControls([{ label: "Up for the day", cls: "primary", fn: function () { logAction("morning_awake", "Up for the day"); } }]);
+    } else {
+      st.innerHTML = "Finish the routine, then start. The wait begins when she starts crying.";
+      setControls([{ label: SEQ[ev.kind].startLabel, cls: "primary", fn: function () { seqStart(ev.kind); } }]);
+    }
+  }
+
+  function awakeSince() {
+    var s = sheetState;
+    if (!s) return null;
+    if (s.nap2.awake !== null)       return s.nap2.awake;
+    if (s.nap1.awake !== null)       return s.nap1.awake;
+    if (s.morningWake !== null)      return s.morningWake;
+    return null;
+  }
+
+  function renderLoop(kind, headline, idleText) {
+    var cfg = SEQ[kind];
+    var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
+
+    if (!seq || seq.kind !== kind) {
+      title.textContent = headline;
+      title.className = "evtitle";
+      meta.textContent = "";
+      clock.textContent = "--:--";
+      clock.className = "clock";
+      st.innerHTML = idleText;
+      setControls([{ label: cfg.startLabel, cls: "primary", fn: function () { seqStart(kind); } }]);
+      return;
+    }
+
+    title.textContent = headline + " \u00b7 settling";
+    title.className = "evtitle";
+
+    var bits = ["Total <b>" + fmt(seqElapsed()) + "</b>"];
+    if (cfg.attempts) {
+      bits.push("try <b>" + (seq.attempt + 1) + "</b>");
+      if (seq.phase !== "break" && seq.phase !== "breakDone" && attemptLimit() !== null) {
+        bits.push("<b>" + fmt(Math.max(0, attemptLimit() - attemptElapsed())) + "</b> left");
+      }
+    }
+    meta.innerHTML = bits.join(" &middot; ");
+
+    clock.textContent = remain === null ? "--:--" : fmt(Math.max(0, remain));
+    clock.className = "clock" + (remain !== null && remain <= 0 ? " done flash" : "");
+
+    var atReset = cfg.resetAfter && seqElapsed() >= cfg.resetAfter;
+    st.innerHTML = TEXT[seq.phase === "waitDone" && atReset ? "resetOffer" : seq.phase] || "";
+
+    var asleep  = { label: cfg.asleepLabel, fn: seqAsleep };
+    var stopBtn = { label: "Stop", cls: "ghost", fn: seqStop };
+    var quiet   = { label: "She quieted", fn: function () { phase("quiet", null); } };
+
+    if (seq.phase === "wait")             setControls([asleep, quiet, stopBtn]);
+    else if (seq.phase === "quiet") {
+      st.innerHTML = "Quiet for now. <b>Leave her.</b> Start the wait again only if she picks back up.";
+      setControls([{ label: "Crying again", cls: "primary", fn: function () { phase("wait", cfg.wait); } }, asleep, stopBtn]);
+    }
+    else if (seq.phase === "waitDone")    setControls(atReset
+        ? [{ label: "Do a reset", cls: "primary", fn: function () { seq.startedAt = Date.now(); phase("wait", cfg.wait); } },
+           { label: "Keep going", fn: function () { phase("wait", cfg.wait); } }, asleep]
+        : [{ label: "Check in \u2014 60 sec", cls: "primary", fn: function () { phase("checkin", cfg.checkin); } }, asleep, stopBtn]);
+    else if (seq.phase === "checkin" || seq.phase === "checkinDone")
+      setControls([{ label: "Left the room", cls: "primary", fn: function () { phase("wait", cfg.wait); } }, asleep]);
+    else if (seq.phase === "attemptDone") setControls([{ label: "Start 15-min break", cls: "primary", fn: function () { phase("break", cfg.breakSecs); } }, asleep, stopBtn]);
+    else if (seq.phase === "break")       setControls([asleep, stopBtn]);
+    else if (seq.phase === "breakDone")   setControls(
+        seq.attempt + 1 < cfg.attempts.length
+          ? [{ label: "Second try", cls: "primary", fn: function () {
+                seq.attempt++; seq.attemptStartedAt = Date.now();
+                logAction(cfg.startAction, cfg.startLabel);
+                phase("wait", cfg.wait);
+              } }, asleep, stopBtn]
+          : [{ label: "Emergency nap", cls: "primary", fn: function () { phase("exhausted", null); } }, stopBtn]);
+    else setControls([asleep, stopBtn]);
+  }
+
+  /* ---------- logging ---------- */
+
+  var lastEventAt = null, WHO = "", TOKEN = "";
+
+  function status(msg, cls) {
+    $("logmsg").textContent = msg;
+    $("logstat").className = "logstat" + (cls ? " " + cls : "");
+    $("retryBtn").classList.toggle("hide", !queue.length);
+  }
+
+  function push(action, value, note, label) {
+    var now = new Date();
+    queue.push({ ts: now.toISOString(), mode: mode, action: action, value: value || "", note: note || "", who: WHO });
+    lastEventAt = now;
+    status(label + " at " + clockOf(now) + " \u2014 sending\u2026");
+    if (navigator.vibrate) { try { navigator.vibrate(30); } catch (e) {} }
+    flush();
+  }
+
+  function logAction(action, label) { if (action) push(action, "", "", label); }
+
+  function log(def) {
+    var value = "", note = "";
+    if (def.note) {
+      note = window.prompt("Note for the log") || "";
+      if (!note.trim()) return;
+    } else if (def.ask) {
+      value = window.prompt(def.ask) || "";
+      if (!value.trim() && !def.optional) return;
+    }
+    push(def.action, value, note, def.label);
+  }
+
+  function flush() {
+    if (sending || !queue.length) return;
+    if (!SCRIPT_URL) { status(queue.length + " held \u2014 no script URL set", "bad"); return; }
+
+    sending = true;
+    var batch = queue.slice();
+
+    fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ token: TOKEN, events: batch }),
+      redirect: "follow"
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        sending = false;
+        if (res && res.ok) {
+          queue = queue.slice(batch.length);
+          if (res.status) sheetState = res.status;
+          var cells = (res.cells || []).join(", ");
+          status(cells ? "Written to " + cells : "Logged", "ok");
+          $("retryBtn").classList.add("hide");
+          render();
+        } else {
+          var msg = res && res.error ? res.error : "Rejected";
+          if (msg === "Bad token") {
+            queue = []; store.set("sleeplog.pin", ""); TOKEN = "";
+            showGate();
+            $("gateMsg").textContent = "That PIN was rejected. Try again.";
+            return;
+          }
+          status(msg + " \u2014 " + queue.length + " held", "bad");
+        }
+      })
+      .catch(function () {
+        sending = false;
+        status("Offline \u2014 " + queue.length + " held", "bad");
+      });
+  }
+
+  function renderLogButtons(key) {
+    var defs = LOG_BUTTONS[key] || [], row = $("logrow"), bar = $("logbar");
+    if (!defs.length) { bar.classList.add("hide"); return; }
+    bar.classList.remove("hide");
+    row.innerHTML = defs.map(function (d) { return '<button class="logbtn">' + d.label + "</button>"; }).join("");
+    Array.prototype.forEach.call(row.children, function (b, i) {
+      b.onclick = function () { log(defs[i]); };
+    });
+    if (!queue.length && $("logmsg").textContent === "") status("Ready to log");
+  }
+
+  function fetchStatus() {
+    if (!SCRIPT_URL || !TOKEN) return;
+    fetch(SCRIPT_URL, { method: "GET", redirect: "follow" })
+      .then(function (r) { return r.json(); })
+      .then(function (res) { if (res && res.status) { sheetState = res.status; render(); } })
+      .catch(function () {});
+  }
+
+  /* ---------- wiring ---------- */
+
+  function setMode(m) {
+    mode = m;
+    contentKey = null;
+    Array.prototype.forEach.call(document.querySelectorAll(".mode"), function (b) {
+      b.setAttribute("aria-selected", b.dataset.mode === m ? "true" : "false");
+    });
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".mode"), function (b) {
+    b.onclick = function () { setMode(b.dataset.mode); };
+  });
+
+  $("lightToggle").onclick = function () {
+    var day = document.body.classList.toggle("day");
+    this.textContent = day ? "NIGHT MODE" : "DAY MODE";
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", day ? "#E9EDEC" : "#12141A");
+  };
+
+  $("retryBtn").onclick = flush;
+  window.addEventListener("online", flush);
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") { if (running) requestWake(); fetchStatus(); }
+  });
+
+  /* Tick for the live count-up, and re-check the day every minute so the
+     event advances on its own. */
+  setInterval(function () { watchAttempt(); render(); }, 1000);
+  setInterval(fetchStatus, 60000);
+
+  function showGate() {
+    $("gate").classList.remove("hide");
+    $("whoIn").value = WHO;
+  }
+
+  $("gateSave").onclick = function () {
+    var who = $("whoIn").value.trim(), pin = $("pinIn").value.trim();
+    if (!who || !pin) { $("gateMsg").textContent = "Both fields are needed."; return; }
+    WHO = who; TOKEN = pin;
+    store.set("sleeplog.who", who);
+    store.set("sleeplog.pin", pin);
+    $("gate").classList.add("hide");
+    status("Set up for " + who);
+    fetchStatus();
+  };
+
+  $("pinIn").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") $("gateSave").click();
+  });
+
+  TOKEN = store.get("sleeplog.pin") || "";
+  WHO   = store.get("sleeplog.who") || "";
+
+  setMode("now");
+  if (!TOKEN) showGate(); else fetchStatus();
+})();
+</script>
