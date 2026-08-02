@@ -4,7 +4,7 @@
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Sleep">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Charlotte — Sleep Reference</title>
@@ -47,7 +47,8 @@
     font-family: var(--body);
     font-size: 16px;
     line-height: 1.5;
-    padding-bottom: 64px;
+    /* clear the home indicator when installed to the home screen */
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     transition: background .3s, color .3s;
   }
   #app { max-width: 480px; margin: 0 auto; }
@@ -57,11 +58,18 @@
     position: sticky; top: 0; z-index: 20;
     background: var(--bg);
     border-bottom: 1px solid var(--line);
-    padding: 10px var(--pad) 0;
+    /* "black" status bar means iOS reserves the notch area itself, so the
+       inset is normally 0 here. It stays in the calc for the cases that do
+       report one (landscape, translucent fallbacks). */
+    padding: calc(14px + env(safe-area-inset-top, 0px))
+             calc(var(--pad) + env(safe-area-inset-right, 0px))
+             0
+             calc(var(--pad) + env(safe-area-inset-left, 0px));
   }
   .bar-head {
-    display: flex; align-items: baseline; justify-content: space-between;
-    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 30px;
+    margin-bottom: 12px;
   }
   .wordmark {
     font-family: var(--mono);
@@ -85,7 +93,7 @@
   .mode[aria-selected="true"] { background: var(--surface-2); color: var(--ink); border-color: var(--amber-soft); }
 
   /* ---------- Timer ---------- */
-  .clockwrap { padding: 22px var(--pad) 18px; text-align: center; }
+  .clockwrap { padding: 22px calc(var(--pad) + env(safe-area-inset-right, 0px)) 18px calc(var(--pad) + env(safe-area-inset-left, 0px)); text-align: center; }
   .presets { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
   .preset {
     background: none; border: 1px solid var(--line); color: var(--ink-dim);
@@ -131,7 +139,9 @@
   /* ---------- First-run gate ---------- */
   .gate {
     position: fixed; inset: 0; z-index: 60;
-    background: var(--bg); display: grid; place-items: center; padding: var(--pad);
+    background: var(--bg); display: grid; place-items: center;
+    padding: calc(var(--pad) + env(safe-area-inset-top, 0px)) var(--pad)
+             calc(var(--pad) + env(safe-area-inset-bottom, 0px));
   }
   .gatebox { width: 100%; max-width: 320px; }
   .gatetitle { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
@@ -175,7 +185,10 @@
   @media (prefers-reduced-motion: reduce) { .flash { animation: none } }
 
   /* ---------- Content ---------- */
-  .body { padding: 0 var(--pad); }
+  .body {
+    padding: 0 calc(var(--pad) + env(safe-area-inset-right, 0px))
+             0 calc(var(--pad) + env(safe-area-inset-left, 0px));
+  }
   .note {
     background: var(--surface-2); border-left: 2px solid var(--sage);
     padding: 10px 12px; border-radius: 0 8px 8px 0;
