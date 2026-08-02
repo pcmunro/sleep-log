@@ -749,16 +749,34 @@
   }
   function releaseWake() { if (wake) { try { wake.release(); } catch (e) {} wake = null; } }
 
+  /* Countdowns are anchored to a wall-clock end time, not to a counter that
+     ticks down. Background tabs and locked screens throttle or suspend
+     intervals, so a decrementing counter silently pauses — the 10-minute
+     wait would never finish while the phone was in your pocket. */
+  var endAt = null;
+
   function run(secs) {
     stop();
+    endAt = Date.now() + secs * 1000;
     remain = secs;
     running = true;
-    timer = setInterval(function () {
-      remain--;
-      if (remain <= 0) { remain = 0; stop(); buzz(); onExpire(); }
-      render();
-    }, 1000);
+    timer = setInterval(tickTimer, 250);
     requestWake();
+    render();
+  }
+
+  function tickTimer() {
+    if (endAt === null) return;
+    var left = Math.ceil((endAt - Date.now()) / 1000);
+    if (left <= 0) {
+      remain = 0;
+      endAt = null;
+      stop();
+      buzz();
+      onExpire();
+    } else {
+      remain = left;
+    }
     render();
   }
 
@@ -772,7 +790,7 @@
 
   function phase(p, secs) {
     seq.phase = p;
-    if (secs === null) { stop(); remain = null; render(); }
+    if (secs === null) { stop(); endAt = null; remain = null; render(); }
     else run(secs);
   }
 
@@ -794,7 +812,7 @@
     seqStop();
   }
 
-  function seqStop() { stop(); seq = null; remain = null; render(); }
+  function seqStop() { stop(); endAt = null; seq = null; remain = null; render(); }
 
   function onExpire() {
     if (!seq) return;
@@ -1173,12 +1191,16 @@
   window.addEventListener("online", flush);
 
   document.addEventListener("visibilitychange", function () {
-    if (document.visibilityState === "visible") { if (running) requestWake(); fetchStatus(); }
+    if (document.visibilityState === "visible") {
+      if (running) requestWake();
+      tickTimer();
+      fetchStatus();
+    }
   });
 
   /* Tick for the live count-up, and re-check the day every minute so the
      event advances on its own. */
-  setInterval(function () { watchAttempt(); render(); }, 1000);
+  setInterval(function () { if (endAt !== null) tickTimer(); watchAttempt(); render(); }, 1000);
   setInterval(fetchStatus, 20000);
 
   function showGate() {
