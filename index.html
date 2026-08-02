@@ -805,12 +805,22 @@
 
   /* ---------- render ---------- */
 
+  /* Rebuild the buttons only when they actually change. This runs once a
+     second; replacing the DOM every tick swallows taps that land mid-frame. */
+  var controlsSig = null;
+
   function setControls(list) {
     var c = $("controls");
-    c.innerHTML = list.map(function (b) {
-      return '<button class="btn ' + (b.cls || "") + '">' + b.label + "</button>";
-    }).join("");
-    Array.prototype.forEach.call(c.children, function (el, i) { el.onclick = list[i].fn; });
+    var sig = list.map(function (b) { return b.label + "|" + (b.cls || ""); }).join("~");
+    if (sig !== controlsSig) {
+      controlsSig = sig;
+      c.innerHTML = list.map(function (b) {
+        return '<button class="btn ' + (b.cls || "") + '">' + b.label + "</button>";
+      }).join("");
+    }
+    Array.prototype.forEach.call(c.children, function (el, i) {
+      if (list[i]) el.onclick = list[i].fn;
+    });
   }
 
   function setContent(key) {
@@ -818,6 +828,12 @@
     contentKey = key;
     $("content").innerHTML = MODES[key].html;
   }
+
+  /* Avoid rewriting identical HTML every tick — it forces layout and
+     can interrupt a tap in progress. */
+  function put(el, html) { if (el.innerHTML !== html) el.innerHTML = html; }
+  function putText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
+  function putClass(el, cls) { if (el.className !== cls) el.className = cls; }
 
   function render() {
     var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
@@ -841,12 +857,12 @@
     /* --- the Now tab --- */
     var ev = currentEvent();
     if (!ev) {
-      title.textContent = "";
-      title.className = "evtitle";
-      meta.textContent = "";
-      clock.textContent = "--:--";
-      clock.className = "clock";
-      st.innerHTML = "Waiting for the log\u2026";
+      putText(title, "");
+      putClass(title, "evtitle");
+      putText(meta, "");
+      putText(clock, "--:--");
+      putClass(clock, "clock");
+      put(st, "Waiting for the log\u2026");
       setControls([]);
       setContent("nap");
       renderLogButtons("nap");
@@ -860,12 +876,12 @@
     if (seq) { renderLoop(seq.kind, ev.title, ""); return; }
 
     if (ev.phase === "done") {
-      title.textContent = "Day complete";
-      title.className = "evtitle";
-      meta.textContent = "";
-      clock.textContent = "--:--";
-      clock.className = "clock";
-      st.innerHTML = "Everything for this plan night is logged.";
+      putText(title, "Day complete");
+      putClass(title, "evtitle");
+      putText(meta, "");
+      putText(clock, "--:--");
+      putClass(clock, "clock");
+      put(st, "Everything for this plan night is logged.");
       setControls([]);
       return;
     }
@@ -873,12 +889,12 @@
     /* In the crib, not asleep yet — either phone can pick up the loop. */
     if (ev.phase === "settling") {
       var down = ev.cribAt !== null ? ev.cribAt : nowMin();
-      title.textContent = ev.title + " \u00b7 in the crib";
-      title.className = "evtitle";
-      meta.innerHTML = "In the crib since <b>" + hhmm(down) + "</b>";
-      clock.textContent = fmt(elapsedSince(down, nowMin()) * 60);
-      clock.className = "clock";
-      st.innerHTML = "Waiting for her to settle. Start the 10-minute wait when she starts crying.";
+      putText(title, ev.title + " \u00b7 in the crib");
+      putClass(title, "evtitle");
+      put(meta, "In the crib since <b>" + hhmm(down) + "</b>");
+      putText(clock, fmt(elapsedSince(down, nowMin()) * 60));
+      putClass(clock, "clock");
+      put(st, "Waiting for her to settle. Start the 10-minute wait when she starts crying.");
       setControls([
         { label: "Start the wait", cls: "primary", fn: function () { seqResume(ev.kind); } },
         { label: "She's asleep", fn: function () { logAction(SEQ[ev.kind].asleepAction, "Asleep"); } }
@@ -892,20 +908,20 @@
       var cap   = capFor(ev);
       var over  = slept >= cap;
 
-      title.textContent = ev.title + " \u00b7 asleep";
-      title.className = "evtitle" + (over ? " over" : "");
-      meta.innerHTML = "Down at <b>" + hhmm(from) + "</b>";
-      clock.textContent = fmt(slept * 60);
-      clock.className = "clock" + (over ? " done flash" : "");
+      putText(title, ev.title + " \u00b7 asleep");
+      putClass(title, "evtitle" + (over ? " over" : ""));
+      put(meta, "Down at <b>" + hhmm(from) + "</b>");
+      putText(clock, fmt(slept * 60));
+      putClass(clock, "clock" + (over ? " done flash" : ""));
 
       if (over) {
-        st.innerHTML = ev.kind === "nap"
+        put(st, ev.kind === "nap"
           ? "<b>Over the cap. Wake her now</b> &mdash; open the door, kill the white noise, open the curtains."
-          : "<b>12 hours.</b> Time to wake her.";
+          : "<b>12 hours.</b> Time to wake her.");
       } else if (ev.kind === "nap") {
-        st.innerHTML = "Max <b>" + dur(cap) + "</b> &mdash; up by <b>" + hhmm(from + cap) + "</b>.";
+        put(st, "Max <b>" + dur(cap) + "</b> &mdash; up by <b>" + hhmm(from + cap) + "</b>.");
       } else {
-        st.innerHTML = "Nothing before <b>06:00</b>. Wake her by <b>" + hhmm(from + cap) + "</b>.";
+        put(st, "Nothing before <b>06:00</b>. Wake her by <b>" + hhmm(from + cap) + "</b>.");
       }
 
       if (ev.kind === "nap") {
@@ -924,22 +940,22 @@
     var late = secs < 0;
     var then = nextAfter(ev);
 
-    title.textContent = ev.title + (late ? " \u00b7 overdue" : " \u00b7 next");
-    title.className = "evtitle" + (late ? " due" : "");
-    clock.textContent = fmt(Math.abs(secs));
-    clock.className = "clock" + (late ? " done" : "");
+    putText(title, ev.title + (late ? " \u00b7 overdue" : " \u00b7 next"));
+    putClass(title, "evtitle" + (late ? " due" : ""));
+    putText(clock, fmt(Math.abs(secs)));
+    putClass(clock, "clock" + (late ? " done" : ""));
 
     var bits = ["Scheduled <b>" + hhmm(ev.at) + "</b>"];
     if (ev.key !== "wakeup") bits.push("then " + then.title.toLowerCase() + " <b>" + hhmm(then.at) + "</b>");
     var since = awakeSince();
     if (since !== null) bits.push("awake <b>" + dur(elapsedSince(since, nowMin())) + "</b>");
-    meta.innerHTML = bits.join(" &middot; ");
+    put(meta, bits.join(" &middot; "));
 
     if (ev.kind === "wakeup") {
-      st.innerHTML = "Nothing before <b>06:00</b> counts as morning. After 05:30, no visits &mdash; hold out as close to 06:00 as you can.";
+      put(st, "Nothing before <b>06:00</b> counts as morning. After 05:30, no visits &mdash; hold out as close to 06:00 as you can.");
       setControls([{ label: "Up for the day", cls: "primary", fn: function () { logAction("morning_awake", "Up for the day"); } }]);
     } else {
-      st.innerHTML = "Finish the routine, then start. The wait begins when she starts crying.";
+      put(st, "Finish the routine, then start. The wait begins when she starts crying.");
       setControls([{ label: SEQ[ev.kind].startLabel, cls: "primary", fn: function () { seqStart(ev.kind); } }]);
     }
   }
@@ -958,18 +974,18 @@
     var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
 
     if (!seq || seq.kind !== kind) {
-      title.textContent = headline;
-      title.className = "evtitle";
-      meta.textContent = "";
-      clock.textContent = "--:--";
-      clock.className = "clock";
-      st.innerHTML = idleText;
+      putText(title, headline);
+      putClass(title, "evtitle");
+      putText(meta, "");
+      putText(clock, "--:--");
+      putClass(clock, "clock");
+      put(st, idleText);
       setControls([{ label: cfg.startLabel, cls: "primary", fn: function () { seqStart(kind); } }]);
       return;
     }
 
-    title.textContent = headline + " \u00b7 settling";
-    title.className = "evtitle";
+    putText(title, headline + " \u00b7 settling");
+    putClass(title, "evtitle");
 
     var bits = ["Total <b>" + fmt(seqElapsed()) + "</b>"];
     if (cfg.attempts) {
@@ -978,13 +994,13 @@
         bits.push("<b>" + fmt(Math.max(0, attemptLimit() - attemptElapsed())) + "</b> left");
       }
     }
-    meta.innerHTML = bits.join(" &middot; ");
+    put(meta, bits.join(" &middot; "));
 
-    clock.textContent = remain === null ? "--:--" : fmt(Math.max(0, remain));
-    clock.className = "clock" + (remain !== null && remain <= 0 ? " done flash" : "");
+    putText(clock, remain === null ? "--:--" : fmt(Math.max(0, remain)));
+    putClass(clock, "clock" + (remain !== null && remain <= 0 ? " done flash" : ""));
 
     var atReset = cfg.resetAfter && seqElapsed() >= cfg.resetAfter;
-    st.innerHTML = TEXT[seq.phase === "waitDone" && atReset ? "resetOffer" : seq.phase] || "";
+    put(st, TEXT[seq.phase === "waitDone" && atReset ? "resetOffer" : seq.phase] || "");
 
     var asleep  = { label: cfg.asleepLabel, fn: seqAsleep };
     var stopBtn = { label: "Stop", cls: "ghost", fn: seqStop };
@@ -992,7 +1008,7 @@
 
     if (seq.phase === "wait")             setControls([asleep, quiet, stopBtn]);
     else if (seq.phase === "quiet") {
-      st.innerHTML = "Quiet for now. <b>Leave her.</b> Start the wait again only if she picks back up.";
+      put(st, "Quiet for now. <b>Leave her.</b> Start the wait again only if she picks back up.");
       setControls([{ label: "Crying again", cls: "primary", fn: function () { phase("wait", cfg.wait); } }, asleep, stopBtn]);
     }
     else if (seq.phase === "waitDone")    setControls(atReset
@@ -1087,7 +1103,12 @@
       });
   }
 
+  var logKey = null;
+
   function renderLogButtons(key) {
+    if (key === logKey) return;
+    logKey = key;
+
     var defs = LOG_BUTTONS[key] || [], row = $("logrow"), bar = $("logbar");
     if (!defs.length) { bar.classList.add("hide"); return; }
     bar.classList.remove("hide");
@@ -1095,7 +1116,7 @@
     Array.prototype.forEach.call(row.children, function (b, i) {
       b.onclick = function () { log(defs[i]); };
     });
-    if (!queue.length && $("logmsg").textContent === "") status("Ready to log");
+    if (!queue.length) status("Ready to log");
   }
 
   function fetchStatus() {
@@ -1110,7 +1131,7 @@
 
   function setMode(m) {
     mode = m;
-    contentKey = null;
+    contentKey = null; controlsSig = null; logKey = null;
     Array.prototype.forEach.call(document.querySelectorAll(".mode"), function (b) {
       b.setAttribute("aria-selected", b.dataset.mode === m ? "true" : "false");
     });
@@ -1138,7 +1159,7 @@
   /* Tick for the live count-up, and re-check the day every minute so the
      event advances on its own. */
   setInterval(function () { watchAttempt(); render(); }, 1000);
-  setInterval(fetchStatus, 60000);
+  setInterval(fetchStatus, 20000);
 
   function showGate() {
     $("gate").classList.remove("hide");
