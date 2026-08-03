@@ -279,11 +279,14 @@
   <div class="bar">
     <div class="bar-head">
       <div class="wordmark">Charlotte &middot; Sleep</div>
-      <button class="lightbtn" id="lightToggle">DAY MODE</button>
+      <div style="display:flex;gap:6px">
+        <button class="lightbtn" id="langToggle">TAGALOG</button>
+        <button class="lightbtn" id="lightToggle">DAY MODE</button>
+      </div>
     </div>
     <div class="modes" role="tablist" id="modes">
-      <button class="mode" role="tab" data-mode="now" aria-selected="true">Now</button>
-      <button class="mode" role="tab" data-mode="ref" aria-selected="false">Reference</button>
+      <button class="mode" role="tab" data-mode="now" aria-selected="true" id="tabNow">Now</button>
+      <button class="mode" role="tab" data-mode="ref" aria-selected="false" id="tabRef">Reference</button>
     </div>
   </div>
 
@@ -328,7 +331,156 @@
   };
 
 
-  var MODES = {
+  /* ---------- interface strings ---------- */
+
+  var UI = {
+    en: {
+      tabNow: "Now", tabRef: "Reference",
+      light: ["DAY MODE", "NIGHT MODE"], langBtn: "TAGALOG",
+
+      gateTitle: "Set up this phone", gateHint: "Just once. Ask Patrick for the PIN.",
+      gateName: "Your name", gatePin: "PIN", gateSave: "Save",
+      gateBoth: "Both fields are needed.", gateBad: "That PIN was rejected. Try again.",
+      setUpFor: function (w) { return "Set up for " + w; },
+
+      ready: "Ready to log", retry: "Retry",
+      sending: function (l, t) { return l + " at " + t + " \u2014 sending\u2026"; },
+      wrote: function (c) { return "Written to " + c; }, logged: "Logged",
+      held: function (n) { return "Offline \u2014 " + n + " held"; },
+      noUrl: function (n) { return n + " held \u2014 no script URL set"; },
+      waiting: "Waiting for the log\u2026",
+
+      evWake: "Wake-up", evNap1: "Nap 1", evNap2: "Nap 2", evBed: "Bedtime",
+      evNight: "Night sleep", evDone: "Day complete", evNightWake: "Night waking",
+      sufNext: " \u00b7 next", sufLate: " \u00b7 overdue", sufAsleep: " \u00b7 asleep",
+      sufCrib: " \u00b7 in the crib", sufSettling: " \u00b7 settling",
+
+      doneMsg: "Everything for this plan night is logged.",
+      scheduled: function (t) { return "Scheduled <b>" + t + "</b>"; },
+      thenNext: function (n, t) { return "then " + n.toLowerCase() + " <b>" + t + "</b>"; },
+      awakeFor: function (d) { return "awake <b>" + d + "</b>"; },
+      downAt: function (t) { return "Down at <b>" + t + "</b>"; },
+      cribSince: function (t) { return "In the crib since <b>" + t + "</b>"; },
+      totalIs: function (t) { return "Total <b>" + t + "</b>"; },
+      tryIs: function (n) { return "try <b>" + n + "</b>"; },
+      leftIs: function (t) { return "<b>" + t + "</b> left"; },
+
+      startHint: "Finish the routine, then start. The wait begins when she starts crying.",
+      settleHint: "Waiting for her to settle. Start the 10-minute wait when she starts crying.",
+      wakeHint: "Nothing before <b>06:00</b> counts as morning. After 05:30, no visits \u2014 hold out as close to 06:00 as you can.",
+      napMax: function (c, t) { return "Max <b>" + c + "</b> \u2014 up by <b>" + t + "</b>."; },
+      nightMax: function (t) { return "Nothing before <b>06:00</b>. Wake her by <b>" + t + "</b>."; },
+      napOver: "<b>Over the cap. Wake her now</b> \u2014 open the door, kill the white noise, open the curtains.",
+      nightOver: "<b>12 hours.</b> Time to wake her.",
+
+      holdTitle: "Holding for 06:00", holdMorning: "Morning",
+      holdMeta: "Awake before 06:00 &middot; no visits",
+      holdWait: "Leave her without visits until as close to <b>06:00</b> as you can.",
+      holdDone: "<b>Morning.</b> Take her out of the room and feed in a bright environment.",
+
+      loop: {
+        wait: "Wait. Don't go in.",
+        waitDone: "<b>Go in for 30&ndash;60 seconds.</b> Voice first, then touch.",
+        resetOffer: "An hour with no sign of settling. <b>A reset is an option</b> \u2014 or keep going if she's making progress.",
+        checkin: "Voice, then touch. Leave when this ends.",
+        checkinDone: "<b>Leave the room now</b>, even if she's still crying.",
+        quiet: "Quiet for now. <b>Leave her.</b> Start the wait again only if she picks back up.",
+        attemptDone: "<b>Take a 15-minute break.</b> No feed, nothing stimulating.",
+        "break": "Keep it calm and low-stimulation.",
+        breakDone: "<b>Second try.</b> Repeat the nap routine, crib wide awake.",
+        exhausted: "<b>Emergency nap.</b> Stroller walk or a drive \u2014 that counts as the nap."
+      },
+
+      bStart: "Put her in the crib", bStartWait: "Start the wait",
+      bAsleep: "She's asleep", bWoke: "She woke", bUp: "Up for the day",
+      bBackAsleep: "Back asleep", bStop: "Stop", bQuiet: "She quieted",
+      bCrying: "Crying again", bCheckin: "Check in \u2014 60 sec", bLeft: "Left the room",
+      bReset: "Do a reset", bKeep: "Keep going", bBreak: "Start 15-min break",
+      bSecond: "Second try", bEmergency: "Emergency nap",
+
+      lIn: "In crib", lAsleep: "Asleep", lAwake: "Awake", lNote: "Note",
+      lFed: "Fed", lCry: "Crying /10", lRate: "Night /10", lWoke: "Woke",
+      pNote: "Note for the log", pFed: "Duration or ounces (optional)",
+      pCry: "Crying scale 1\u201310 (10 = hysterical)",
+      pRate: "Rate the night 1\u201310 (10 = excellent)"
+    },
+
+    tl: {
+      tabNow: "Ngayon", tabRef: "Gabay",
+      light: ["ARAW", "GABI"], langBtn: "ENGLISH",
+
+      gateTitle: "I-set up ang teleponong ito", gateHint: "Isang beses lang. Hingin kay Patrick ang PIN.",
+      gateName: "Pangalan mo", gatePin: "PIN", gateSave: "I-save",
+      gateBoth: "Kailangan ang dalawang kahon.", gateBad: "Mali ang PIN. Subukan ulit.",
+      setUpFor: function (w) { return "Naka-set up para kay " + w; },
+
+      ready: "Handa nang mag-log", retry: "Ulitin",
+      sending: function (l, t) { return l + " nang " + t + " \u2014 ipinapadala\u2026"; },
+      wrote: function (c) { return "Naisulat sa " + c; }, logged: "Naitala",
+      held: function (n) { return "Walang koneksyon \u2014 " + n + " ang naghihintay"; },
+      noUrl: function (n) { return n + " naghihintay \u2014 walang script URL"; },
+      waiting: "Hinihintay ang log\u2026",
+
+      evWake: "Paggising", evNap1: "Nap 1", evNap2: "Nap 2", evBed: "Oras ng tulog",
+      evNight: "Tulog sa gabi", evDone: "Tapos na ang araw", evNightWake: "Paggising sa gabi",
+      sufNext: " \u00b7 susunod", sufLate: " \u00b7 lampas na", sufAsleep: " \u00b7 tulog",
+      sufCrib: " \u00b7 nasa crib", sufSettling: " \u00b7 pinapatulog",
+
+      doneMsg: "Naitala na ang lahat para sa gabing ito.",
+      scheduled: function (t) { return "Nakatakda <b>" + t + "</b>"; },
+      thenNext: function (n, t) { return "tapos " + n.toLowerCase() + " <b>" + t + "</b>"; },
+      awakeFor: function (d) { return "gising na <b>" + d + "</b>"; },
+      downAt: function (t) { return "Nakatulog nang <b>" + t + "</b>"; },
+      cribSince: function (t) { return "Nasa crib mula <b>" + t + "</b>"; },
+      totalIs: function (t) { return "Kabuuan <b>" + t + "</b>"; },
+      tryIs: function (n) { return "subok <b>" + n + "</b>"; },
+      leftIs: function (t) { return "<b>" + t + "</b> natitira"; },
+
+      startHint: "Tapusin ang routine, tapos simulan. Magsisimula ang paghihintay kapag umiyak siya.",
+      settleHint: "Hinihintay siyang makatulog. Simulan ang 10-minutong paghihintay kapag umiyak siya.",
+      wakeHint: "Walang itinuturing na umaga bago mag-<b>06:00</b>. Pagkatapos ng 05:30, huwag nang pumasok \u2014 maghintay hangga't malapit sa 06:00.",
+      napMax: function (c, t) { return "Hanggang <b>" + c + "</b> \u2014 gisingin bago mag-<b>" + t + "</b>."; },
+      nightMax: function (t) { return "Wala bago mag-<b>06:00</b>. Gisingin bago mag-<b>" + t + "</b>."; },
+      napOver: "<b>Lampas na sa hangganan. Gisingin na siya</b> \u2014 buksan ang pinto, patayin ang white noise, buksan ang kurtina.",
+      nightOver: "<b>12 oras na.</b> Oras nang gisingin siya.",
+
+      holdTitle: "Naghihintay hanggang 06:00", holdMorning: "Umaga na",
+      holdMeta: "Gising bago mag-06:00 &middot; huwag pumasok",
+      holdWait: "Huwag pumasok. Maghintay hangga't malapit sa <b>06:00</b>.",
+      holdDone: "<b>Umaga na.</b> Ilabas siya sa kwarto at pakainin sa maliwanag na lugar.",
+
+      loop: {
+        wait: "Maghintay. Huwag pumasok.",
+        waitDone: "<b>Pumasok ng 30&ndash;60 segundo.</b> Boses muna, tapos haplos.",
+        resetOffer: "Isang oras nang walang senyales ng pagkalma. <b>Puwedeng mag-reset</b> \u2014 o ipagpatuloy kung umuunlad siya.",
+        checkin: "Boses, tapos haplos. Lumabas kapag tapos na ito.",
+        checkinDone: "<b>Lumabas na sa kwarto</b>, kahit umiiyak pa siya.",
+        quiet: "Tahimik siya ngayon. <b>Iwan siya.</b> Simulan ulit ang paghihintay kung umiyak siyang muli.",
+        attemptDone: "<b>Magpahinga ng 15 minuto.</b> Walang pagpapakain, walang nakaka-excite.",
+        "break": "Panatilihing tahimik at kalmado.",
+        breakDone: "<b>Pangalawang subok.</b> Ulitin ang nap routine, crib na gising na gising.",
+        exhausted: "<b>Emergency nap.</b> Maglakad gamit ang stroller o mag-drive \u2014 bilang iyon na nap."
+      },
+
+      bStart: "Ilagay siya sa crib", bStartWait: "Simulan ang paghihintay",
+      bAsleep: "Tulog na siya", bWoke: "Gising na siya", bUp: "Gising na para sa araw",
+      bBackAsleep: "Bumalik sa tulog", bStop: "Itigil", bQuiet: "Tumahimik siya",
+      bCrying: "Umiiyak ulit", bCheckin: "Pumasok \u2014 60 segundo", bLeft: "Lumabas na ako",
+      bReset: "Mag-reset", bKeep: "Ipagpatuloy", bBreak: "Magpahinga ng 15 minuto",
+      bSecond: "Pangalawang subok", bEmergency: "Emergency nap",
+
+      lIn: "Sa crib", lAsleep: "Tulog", lAwake: "Gising", lNote: "Tala",
+      lFed: "Kumain", lCry: "Iyak /10", lRate: "Gabi /10", lWoke: "Gising",
+      pNote: "Tala para sa log", pFed: "Tagal o onsa (opsyonal)",
+      pCry: "Antas ng iyak 1\u201310 (10 = sobrang iyak)",
+      pRate: "Bigyan ng marka ang gabi 1\u201310 (10 = napakaganda)"
+    }
+  };
+
+  var lang = store.get("sleeplog.lang") || "en";
+  function S() { return UI[lang]; }
+
+  var MODES_EN = {
     bedtime: {
       html: [
         '<div class="note">Around 7:00 PM. Bottle goes <b>first</b> so the feed never becomes the thing that puts her to sleep.</div>',
@@ -540,6 +692,220 @@
     }
   };
 
+  var MODES_TL = {
+    bedtime: {
+      html: [
+        '<div class="note">Mga 7:00 PM. <b>Una ang bote</b> para hindi maging dahilan ng pagtulog ang pagpapakain.</div>',
+        details("Routine", true,
+          '<ol class="steps">' +
+          li("Bote", "Unang hakbang, hindi huli") +
+          li("Paliligo", "") +
+          li("Diaper, pantulog", "") +
+          li("Sleep sack at libro", "") +
+          li("Kanta bago matulog, buksan ang white noise", "") +
+          li('Ilagay sa crib &mdash; gising na gising', 'Key phrase: "Night-night time, Charlotte." Pagkatapos ay lumabas.', true) +
+          '</ol>'),
+        details("Kapag papasok ka: ang hagdan", false,
+          '<span class="tag">Tumigil agad kapag kumalma siya, tapos lumabas</span>' +
+          '<div class="ladder">' +
+          rung("01", "<b>Boses</b> &mdash; malakas na shush, humming, key phrase, isang round ng kanta. Ilang segundo lang.") +
+          rung("02", "<b>Haplos</b> &mdash; hawakan ang kamay, tapikin ang likod, ihiga siya, haplusin ang mukha.") +
+          rung("03", "<b>Buhatin</b> &mdash; iwasan kung maaari. Kung talagang gulong-gulo siya, saglit lang.", true) +
+          '</div><p style="color:var(--ink-dim);font-size:14px;margin:12px 0 0">Paunti-untiin ang tulong bawat gabi. Hindi trabaho mong patulugin siya &mdash; nandiyan ka lang para suportahan siya sa pagbabago.</p>'),
+        details("Huwag", false,
+          '<ul class="nope">' +
+          '<li>Hayaang maantok siya habang umiinom ng bote</li>' +
+          '<li>Ihiga siya na tulog o kalahating tulog</li>' +
+          '<li>Tumugon bago matapos ang 10 minuto</li>' +
+          '<li>Istorbohin ang ritmikong pagpapakalma niya sa sarili</li>' +
+          '<li>Tapusin ang routine sa pagpapakain</li>' +
+          '<li>Iuga, patulugin sa pagpapakain, contact sleep o pagtabi &mdash; kahit minsan</li>' +
+          '<li>Ibalik ang pacifier na hindi niya kayang ibalik mag-isa</li>' +
+          '</ul>'),
+        details("Kung hindi gumagana", false,
+          '<span class="tag">Bedtime reset &mdash; pagkatapos ng 60 minuto na walang senyales ng pagkalma</span>' +
+          '<ol class="steps">' +
+          li("Buhatin siya", "") +
+          li("Tanggalin ang sleep sack", "") +
+          li("Maglakad hanggang kumalma siya", "Kalmado, pero hindi tulog") +
+          li("Maikling routine", "Diaper, sleep sack, isang libro sa malamlam na pulang ilaw, goodnight") +
+          li("Ibalik sa crib na gising", "", true) +
+          '</ol><p style="color:var(--ink-dim);font-size:14px;margin:12px 0 0">Walang mahigpit na hangganan ng oras. Kung umuunlad siya, ipagpatuloy.</p>')
+      ].join("")
+    },
+
+    nap: {
+      html: [
+        '<div class="note">Nap 1 mga 9:30, Nap 2 mga 2:00&ndash;2:30. Ang nap training ay nagsisimula sa araw <b>pagkatapos</b> magsimula ang gabi.</div>',
+        details("Routine", true,
+          '<span class="tag">Maikling bersyon ng bedtime &mdash; walang pagpapakain</span>' +
+          '<ol class="steps">' +
+          li("Diaper", "Palitan ang damit kung kailangan") +
+          li("Sleep sack", "") +
+          li("Libro o kanta", "") +
+          li("Buksan ang white noise", "") +
+          li("Ilagay sa crib &mdash; gising na gising", "Parehong check-in gaya ng bedtime", true) +
+          '</ol>'),
+        details("Ang pagkakasunod-sunod ng pagsubok", true,
+          '<table><tbody>' +
+          '<tr><td>45&ndash;60 min</td><td>Unang subok. Tulog na? Maghintay ng 4&ndash;5 minuto pagkagising bago pumasok.</td></tr>' +
+          '<tr><td>15 min</td><td>Pahinga. Walang pagpapakain, walang nakaka-excite.</td></tr>' +
+          '<tr><td>30 min</td><td>Ulitin ang routine, ilagay sa crib na gising, pangalawang subok.</td></tr>' +
+          '<tr><td class="warnrow">Gising pa</td><td class="warnrow">Emergency nap &mdash; maglakad gamit ang stroller o mag-drive. Bilang iyon.</td></tr>' +
+          '</tbody></table>'),
+        details("Huwag", false,
+          '<ul class="nope">' +
+          '<li>Contact nap o pagtabi sa kama &mdash; nagdudulot ito ng pagtanggi sa crib</li>' +
+          '<li>Magpakain habang nasa 15-minutong pahinga</li>' +
+          '<li>Anumang sleep prop bago siya makatulog</li>' +
+          '<li>Bote sa loob ng 45 minuto bago magsimula ang nap</li>' +
+          '</ul>'),
+        details("Ibang sitwasyon", false,
+          '<table><tbody>' +
+          '<tr><td>Maikling nap</td><td>Wala pang isang oras at gising na siya? Ituring itong night waking &mdash; iwan siya ng 10&ndash;15 minuto. Kung hindi bumalik sa tulog, ibangon na siya at subukan ulit sa susunod na nap.</td></tr>' +
+          '<tr><td>Mahabang nap</td><td>Hanggang 2 oras ay okay kung maaga sa araw. Kung papalapit na sa 3.5 oras ang kabuuang tulog sa araw, dahan-dahang gisingin: buksan ang pinto, patayin ang white noise, buksan ang kurtina.</td></tr>' +
+          '<tr><td>Nakatulog sa kotse</td><td>Hayaang tapusin niya. Ibalik sa iskedyul pagdating sa bahay.</td></tr>' +
+          '<tr><td>Micro nap</td><td>Wala pang 15 minuto sa kotse &mdash; panatilihing gising siya ng mga 60&ndash;90 minuto, tapos subukan ang nap o bedtime depende sa oras.</td></tr>' +
+          '<tr><td>Pagod ka na</td><td>Ang stroller o kotse ay tanggap na pangalawang opsyon. Gamitin ito, tapos balik sa normal sa susunod na nap.</td></tr>' +
+          '<tr><td>Masamang araw ng nap</td><td>Iagang ang bedtime.</td></tr>' +
+          '</tbody></table>'),
+        details("Ano ang normal", false,
+          '<ul class="plain">' +
+          '<li>Unang aayos ang tulog sa gabi. Susunod ang nap, kadalasan hindi halata hanggang ikalawang linggo.</li>' +
+          '<li>5&ndash;10 minuto bago makatulog kapag nakasanayan na. Mas matagal sa umpisa.</li>' +
+          '<li>Humahaba ang nap habang tumatagal.</li>' +
+          '</ul>')
+      ].join("")
+    },
+
+    night: {
+      html: [
+        '<div class="note">Natural na nagigising siya sa pagitan ng sleep cycles, nag-iingay, umiiyak, at kadalasan ay nakakabalik sa tulog mag-isa. Ang mabilis na pagpasok ay nag-aalis ng pagkakataong iyon.</div>',
+        details("Ano ang gagawin", true,
+          '<ol class="steps">' +
+          li("Simulan ang timer kapag nagsimula siyang umiyak", "") +
+          li("Maghintay ng 10 minuto", "") +
+          li("Umiiyak pa rin? Pumasok ng 30&ndash;60 segundo", "Boses, tapos haplos, buhatin lang kung talagang kailangan") +
+          li("Lumabas ulit", "Kahit umiiyak pa siya") +
+          li("I-restart ang timer, ulitin", "", true) +
+          '</ol>'),
+        details("Pakinggan ito", false,
+          '<p style="margin:0">Ritmiko at paulit-ulit na pag-iyak &mdash; ang tinatawag na roller-coaster cry, tunog ng lumalangitngit na pinto, o "e-i-e-i-e-i." Iyon ay <b>pagpapakalma niya sa sarili</b>. Huwag itong istorbohin. Iba ito sa tuluyang pag-iyak.</p>' +
+          '<p style="margin:12px 0 0;color:var(--ink-dim);font-size:14px">Kung tumahimik siya nang mahigit 30 segundo, itigil ang timer at iwan siya. Kung magsimula ulit, i-restart ito.</p>'),
+        details("Huwag", false,
+          '<ul class="nope">' +
+          '<li>Pagpapakain sa gabi &mdash; tinanggal sa planong ito</li>' +
+          '<li>Tumugon sa loob ng 10 minuto</li>' +
+          '<li>Pumasok habang kinakalma niya ang sarili</li>' +
+          '<li>Manatili sa kwarto nang lampas 60 segundo</li>' +
+          '</ul>'),
+        details("Kung hindi gumagana", false,
+          '<span class="tag">Bedtime reset &mdash; pagkatapos ng 1 oras na walang senyales ng pagkalma</span>' +
+          '<p style="margin:0">Buhatin siya, tanggalin ang sleep sack, maglakad hanggang kumalma pero hindi tulog, maikling routine sa malamlam na pulang ilaw, ibalik sa crib na gising.</p>')
+      ].join("")
+    },
+
+    early: {
+      html: [
+        '<div class="note">Walang itinuturing na umaga bago mag-<b>6:00 AM</b>. Ang inaasahang gising ay 10.5&ndash;12 oras pagkatapos ng bedtime.</div>',
+        details("Ano ang gagawin", true,
+          '<table><tbody>' +
+          '<tr><td>Bago 5:30</td><td>Ituring itong night waking. Buong check-in cycle.</td></tr>' +
+          '<tr><td>Pagkatapos 5:30</td><td>Walang pagpasok. Maghintay hangga\'t malapit sa 6:00.</td></tr>' +
+          '<tr><td>Sa 6:00</td><td>Ilabas siya sa kwarto at pakainin sa <b>maliwanag na lugar</b>. Iyon ang senyales na nagsimula na ang umaga.</td></tr>' +
+          '<tr><td>Unang kain</td><td>I-antala ng 10&ndash;15 minuto pagkagising.</td></tr>' +
+          '<tr><td class="warnrow">12 oras</td><td class="warnrow">Tulog pa rin 12 oras pagkatapos ng bedtime? Gisingin siya.</td></tr>' +
+          '</tbody></table>'),
+        details("Bakit maaaring maagang nagigising", false,
+          '<ul class="plain">' +
+          '<li>May liwanag sa kwarto &mdash; kahit kaunti ay nagdudulot ng maagang paggising. Suriin ang blackout curtain.</li>' +
+          '<li>Patay ang white noise sa gabi, kaya may ingay sa labas na gumigising sa kanya.</li>' +
+          '<li>Sobrang tulog sa araw &mdash; hanggang 3&ndash;3.5 oras lang.</li>' +
+          '<li>Natapos ang huling nap pagkatapos ng 4:30 PM, kaya na-late ang bedtime.</li>' +
+          '</ul>')
+      ].join("")
+    },
+
+    ref: {
+      html: [
+        details("Iskedyul sa araw", true,
+          '<table><tbody>' +
+          '<tr><td>6:30&ndash;7:00</td><td>Gising, kain, laro, almusal</td></tr>' +
+          '<tr><td>~9:30</td><td>Nap 1</td></tr>' +
+          '<tr><td>11:00</td><td>Gising + kain</td></tr>' +
+          '<tr><td>12:30</td><td>Tanghalian + gatas</td></tr>' +
+          '<tr><td>~2:00&ndash;2:30</td><td>Nap 2</td></tr>' +
+          '<tr><td>3:30</td><td>Gising + kain</td></tr>' +
+          '<tr><td>4:30</td><td>Opsyonal na gatas</td></tr>' +
+          '<tr><td>5:30</td><td>Hapunan</td></tr>' +
+          '<tr><td>~7:00</td><td>Bote, tapos bedtime routine</td></tr>' +
+          '</tbody></table>' +
+          '<p style="margin:12px 0 0;font-size:14px;color:var(--ink-dim)">Gabay lang ito, hindi batas &mdash; nagbabago ayon sa oras ng paggising. Hanggang 3&ndash;3.5 oras lang ang tulog sa araw. <b style="color:var(--amber)">Dapat gising na siya mula sa huling nap bago mag-4:30 PM.</b></p>'),
+        details("Senyales ng pagod &mdash; ang pekeng alon", false,
+          '<p style="margin:0">Kadalasan may dalawang alon. Ang una ay mga 60&ndash;90 minuto pagkagising &mdash; <b>peke iyon.</b> Ilibang siya at magiging alerto ulit. Ang pangalawang alon ang hudyat para simulan ang routine.</p>' +
+          '<p style="margin:12px 0 0;color:var(--ink-dim);font-size:14px">Paghikab &middot; pagkusot ng mata &middot; pamumula ng kilay &middot; matamang pagtitig &middot; pagiging maselan</p>'),
+        details("Mga tuntunin sa pagpapakain", false,
+          '<span class="tag">Gising &rarr; kain &rarr; laro &rarr; tulog</span>' +
+          '<ul class="plain">' +
+          '<li>Pakainin 15&ndash;30 minuto pagkagising. Hindi bago mag-nap.</li>' +
+          '<li>Maikling nap at hindi pa oras ng kain? Ialok ito 30&ndash;60 minuto pagkagising.</li>' +
+          '<li>Panatilihing gising na gising siya habang kumakain &mdash; maliwanag na kwarto, kausapin siya. Kahit kaunting antok ay nakakabawas ng sleep pressure.</li>' +
+          '<li>Walang bote sa loob ng 45 minuto bago mag-nap.</li>' +
+          '<li>Ang bote sa gabi ay unang hakbang, hindi ang huli bago ang crib.</li>' +
+          '<li>Walang pagpapakain sa gabi.</li>' +
+          '</ul>'),
+        details("Checklist ng kwarto", false,
+          '<ul class="plain">' +
+          '<li>Napakadilim &mdash; blackout curtain</li>' +
+          '<li>18&ndash;21&deg;C</li>' +
+          '<li>White noise malayo sa crib, hanggang 50&ndash;55 dB, patayin sa pagitan ng tulog</li>' +
+          '<li>Walang laman ang crib &mdash; walang kumot, lovey, bumper, laruan</li>' +
+          '<li>Matigas at patag na kutson, fitted sheet lang</li>' +
+          '<li>Sleep sack na bukas ang braso. Hindi ligtas ang weighted sleep sack.</li>' +
+          '<li>Walang mobile, walang night light</li>' +
+          '<li>Nakatihaya palagi kapag natutulog</li>' +
+          '</ul>'),
+        details("Damit ayon sa temperatura", false,
+          '<table><tbody>' +
+          '<tr><td>&lt;17&deg;</td><td>2.5 TOG sack + sleeper + bodysuit + medyas</td></tr>' +
+          '<tr><td>18&ndash;19&deg;</td><td>2.5 TOG sack + sleeper + bodysuit</td></tr>' +
+          '<tr><td>20&ndash;21&deg;</td><td>1.0 TOG sack + sleeper + bodysuit</td></tr>' +
+          '<tr><td>22&ndash;23&deg;</td><td>1.0 TOG sack + sleeper</td></tr>' +
+          '<tr><td>24&ndash;25&deg;</td><td>0.5 TOG sack + bodysuit</td></tr>' +
+          '<tr><td>26&deg;+</td><td>Bodysuit lang</td></tr>' +
+          '</tbody></table>'),
+        details("Unang dalawang linggo", false,
+          '<table><tbody>' +
+          '<tr><td>Araw 1&ndash;7</td><td>Mas makapit siya sa maghapon. Maraming yakap sa oras na gising.</td></tr>' +
+          '<tr><td>Araw 1&ndash;7</td><td>Pag-iyak sa simula ng routine. Nawawala pagkatapos ng mga isang linggo.</td></tr>' +
+          '<tr><td>Araw 1&ndash;7</td><td>Pag-ayaw pagpasok sa kwarto, kahit para lang magpalit ng diaper. Maglaro sa sahig doon kapag araw.</td></tr>' +
+          '<tr><td class="warnrow">Gabi 4&ndash;6</td><td class="warnrow">Extinction burst &mdash; biglang bumalik sa umpisa. 1&ndash;2 araw lang kung hindi kayo lilihis sa plano.</td></tr>' +
+          '<tr><td>Linggo 1</td><td>Unang aayos ang tulog sa gabi.</td></tr>' +
+          '<tr><td>Linggo 2</td><td>Humahaba ang nap.</td></tr>' +
+          '</tbody></table>' +
+          '<p style="margin:12px 0 0;font-size:14px;color:var(--ink-dim)">Sa unang gabi, karaniwang 45&ndash;60 minuto bago makatulog. Maaaring mapaos ang boses pero maaayos sa loob ng ilang araw. Hindi tuwid ang pag-unlad.</p>'),
+        details("Hindi puwedeng baguhin", true,
+          '<ol class="steps">' +
+          li("Crib. Gising. Palagi.", "") +
+          li("Sampung minuto bago tumugon.", "") +
+          li("Huwag istorbohin ang ritmikong pagpapakalma niya sa sarili.", "") +
+          li("Pakainin sa simula ng routine, hindi sa huli.", "") +
+          li("Walang contact nap, walang pagtabi sa kama, walang patulog sa pagpapakain.", "") +
+          li("Parehong magulang ang gumagawa ng bedtime at nap.", "") +
+          li("Walang umaga bago mag-6:00 AM.", "", true) +
+          '</ol>'),
+        details("Suporta", false,
+          '<table><tbody>' +
+          '<tr><td>Log</td><td>I-update sa buong araw, araw-araw.</td></tr>' +
+          '<tr><td>Voxer</td><td>Ito ang gusto niya. Tinitingnan ng ilang beses araw-araw, Lunes&ndash;Sabado 8am&ndash;6pm. Hanggang 9pm sa unang dalawang gabi. Ang Linggo ay sinasagot sa Lunes.</td></tr>' +
+          '<tr><td>Tawag</td><td>Dalawang 30-minutong tawag. Punan muna ang log. Ang hindi nasagot na tawag na walang paalam sa loob ng 1 oras ay bilang. Mula sa 902-240-2542.</td></tr>' +
+          '</tbody></table>')
+      ].join("")
+    }
+  };
+
+  function M() { return lang === "tl" ? MODES_TL : MODES_EN; }
+
   function li(t, sub, final) {
     return '<li' + (final ? ' class="final"' : '') + '>' + t + (sub ? '<small>' + sub + '</small>' : '') + '</li>';
   }
@@ -590,32 +956,36 @@
     }
   };
 
-  var LOG_BUTTONS = {
-    wakeup:  [
-      { label: "Fed",   action: "feed", ask: "Duration or ounces (optional)", optional: true },
-      { label: "Night /10", action: "rate", ask: "Rate the night 1\u201310 (10 = excellent)" },
-      { label: "Note",  action: "note", note: true }
-    ],
-    nap: [
-      { label: "In crib", action: "nap_crib" },
-      { label: "Asleep",  action: "nap_asleep" },
-      { label: "Awake",   action: "nap_awake" },
-      { label: "Note",    action: "note", note: true }
-    ],
-    bedtime: [
-      { label: "In crib",    action: "bed_crib" },
-      { label: "Asleep",     action: "bed_asleep" },
-      { label: "Crying /10", action: "cry_scale", ask: "Crying scale 1\u201310 (10 = hysterical)" },
-      { label: "Note",       action: "note", note: true }
-    ],
-    night: [
-      { label: "Woke",        action: "wake_start" },
-      { label: "Back asleep", action: "night_waking" },
-      { label: "Fed",         action: "feed", ask: "Duration or ounces (optional)", optional: true },
-      { label: "Note",        action: "note", note: true }
-    ],
-    ref: []
-  };
+  /* Rebuilt on a language switch so the labels and prompts follow it. */
+  function logButtons() {
+    var t = S();
+    return {
+      wakeup: [
+        { label: t.lFed,  action: "feed", ask: t.pFed, optional: true },
+        { label: t.lRate, action: "rate", ask: t.pRate },
+        { label: t.lNote, action: "note", note: true }
+      ],
+      nap: [
+        { label: t.lIn,     action: "nap_crib" },
+        { label: t.lAsleep, action: "nap_asleep" },
+        { label: t.lAwake,  action: "nap_awake" },
+        { label: t.lNote,   action: "note", note: true }
+      ],
+      bedtime: [
+        { label: t.lIn,     action: "bed_crib" },
+        { label: t.lAsleep, action: "bed_asleep" },
+        { label: t.lCry,    action: "cry_scale", ask: t.pCry },
+        { label: t.lNote,   action: "note", note: true }
+      ],
+      night: [
+        { label: t.lWoke,        action: "wake_start" },
+        { label: t.bBackAsleep,  action: "night_waking" },
+        { label: t.lFed,         action: "feed", ask: t.pFed, optional: true },
+        { label: t.lNote,        action: "note", note: true }
+      ],
+      ref: []
+    };
+  }
 
   var mode = "now", timer = null, remain = null, running = false, wake = null;
   var queue = [], sending = false, sheetState = null, contentKey = null;
@@ -665,16 +1035,16 @@
      of them holding local state. */
 
   var STEPS = [
-    { row: 11, grp: null,   field: "morningWake", event: "wakeup",  kind: "wakeup",  title: "Wake-up",     at: "wakeAt" },
-    { row: 14, grp: "nap1", field: "crib",        event: "nap1",    kind: "nap",     title: "Nap 1",       at: "nap1At" },
-    { row: 15, grp: "nap1", field: "asleep",      event: "nap1",    kind: "nap",     title: "Nap 1",       at: "nap1At" },
-    { row: 16, grp: "nap1", field: "awake",       event: "nap1",    kind: "nap",     title: "Nap 1",       at: "nap1At" },
-    { row: 21, grp: "nap2", field: "crib",        event: "nap2",    kind: "nap",     title: "Nap 2",       at: "nap2At" },
-    { row: 22, grp: "nap2", field: "asleep",      event: "nap2",    kind: "nap",     title: "Nap 2",       at: "nap2At" },
-    { row: 23, grp: "nap2", field: "awake",       event: "nap2",    kind: "nap",     title: "Nap 2",       at: "nap2At" },
-    { row: 30, grp: "bed",  field: "crib",        event: "bedtime", kind: "bedtime", title: "Bedtime",     at: "bedAt" },
-    { row: 31, grp: "bed",  field: "asleep",      event: "bedtime", kind: "bedtime", title: "Bedtime",     at: "bedAt" },
-    { row: 32, grp: "bed",  field: "awake",       event: "night",   kind: "bedtime", title: "Night sleep", at: "wakeAt" }
+    { row: 11, grp: null,   field: "morningWake", event: "wakeup",  kind: "wakeup",  title: S().evWake, at: "wakeAt" },
+    { row: 14, grp: "nap1", field: "crib",        event: "nap1",    kind: "nap",     title: S().evNap1, at: "nap1At" },
+    { row: 15, grp: "nap1", field: "asleep",      event: "nap1",    kind: "nap",     title: S().evNap1, at: "nap1At" },
+    { row: 16, grp: "nap1", field: "awake",       event: "nap1",    kind: "nap",     title: S().evNap1, at: "nap1At" },
+    { row: 21, grp: "nap2", field: "crib",        event: "nap2",    kind: "nap",     title: S().evNap2, at: "nap2At" },
+    { row: 22, grp: "nap2", field: "asleep",      event: "nap2",    kind: "nap",     title: S().evNap2, at: "nap2At" },
+    { row: 23, grp: "nap2", field: "awake",       event: "nap2",    kind: "nap",     title: S().evNap2, at: "nap2At" },
+    { row: 30, grp: "bed",  field: "crib",        event: "bedtime", kind: "bedtime", title: S().evBed, at: "bedAt" },
+    { row: 31, grp: "bed",  field: "asleep",      event: "bedtime", kind: "bedtime", title: S().evBed, at: "bedAt" },
+    { row: 32, grp: "bed",  field: "awake",       event: "night",   kind: "bedtime", title: S().evNight, at: "wakeAt" }
   ];
 
   function valueAt(step) {
@@ -691,7 +1061,7 @@
     for (var i = 0; i < STEPS.length; i++) {
       if (valueAt(STEPS[i]) === null) { step = STEPS[i]; break; }
     }
-    if (!step) return { key: "done", kind: "bedtime", title: "Day complete", phase: "done", at: DAY.bedAt };
+    if (!step) return { key: "done", kind: "bedtime", title: S().evDone, phase: "done", at: DAY.bedAt };
 
     var grp = step.grp ? sheetState[step.grp] : null;
 
@@ -712,10 +1082,10 @@
   }
 
   function nextAfter(ev) {
-    if (ev.key === "wakeup")  return { title: "Nap 1",   at: DAY.nap1At };
-    if (ev.key === "nap1")    return { title: "Nap 2",   at: DAY.nap2At };
-    if (ev.key === "nap2")    return { title: "Bedtime", at: DAY.bedAt };
-    return { title: "Wake-up", at: DAY.wakeAt };
+    if (ev.key === "wakeup")  return { title: S().evNap1, at: DAY.nap1At };
+    if (ev.key === "nap1")    return { title: S().evNap2, at: DAY.nap2At };
+    if (ev.key === "nap2")    return { title: S().evBed, at: DAY.bedAt };
+    return { title: S().evWake, at: DAY.wakeAt };
   }
 
   /* Cap on a sleep in progress, in minutes. */
@@ -865,7 +1235,7 @@
   function setContent(key) {
     if (contentKey === key) return;
     contentKey = key;
-    $("content").innerHTML = MODES[key].html;
+    $("content").innerHTML = M()[key].html;
   }
 
   /* Avoid rewriting identical HTML every tick — it forces layout and
@@ -893,7 +1263,7 @@
       putText(meta, "");
       putText(clock, "--:--");
       putClass(clock, "clock");
-      put(st, "Waiting for the log\u2026");
+      put(st, S().waiting);
       setControls([]);
       setContent("nap");
       renderLogButtons("nap");
@@ -907,12 +1277,12 @@
     if (seq) { renderLoop(seq.kind, seq.kind === "night" ? "Night waking" : ev.title, ""); return; }
 
     if (ev.phase === "done") {
-      putText(title, "Day complete");
+      putText(title, S().evDone);
       putClass(title, "evtitle");
       putText(meta, "");
       putText(clock, "--:--");
       putClass(clock, "clock");
-      put(st, "Everything for this plan night is logged.");
+      put(st, S().doneMsg);
       setControls([]);
       return;
     }
@@ -920,15 +1290,15 @@
     /* In the crib, not asleep yet — either phone can pick up the loop. */
     if (ev.phase === "settling") {
       var down = ev.cribAt !== null ? ev.cribAt : nowMin();
-      putText(title, ev.title + " \u00b7 in the crib");
+      putText(title, ev.title + S().sufCrib);
       putClass(title, "evtitle");
-      put(meta, "In the crib since <b>" + hhmm(down) + "</b>");
+      put(meta, S().cribSince(hhmm(down)));
       putText(clock, fmt(elapsedSince(down, nowMin()) * 60));
       putClass(clock, "clock");
-      put(st, "Waiting for her to settle. Start the 10-minute wait when she starts crying.");
+      put(st, S().settleHint);
       setControls([
-        { label: "Start the wait", cls: "primary", fn: function () { seqResume(ev.kind); } },
-        { label: "She's asleep", fn: function () { logAction(SEQ[ev.kind].asleepAction, "Asleep"); } }
+        { label: S().bStartWait, cls: "primary", fn: function () { seqResume(ev.kind); } },
+        { label: S().bAsleep, fn: function () { logAction(SEQ[ev.kind].asleepAction, S().lAsleep); } }
       ]);
       return;
     }
@@ -939,24 +1309,24 @@
       var cap   = capFor(ev);
       var over  = slept >= cap;
 
-      putText(title, ev.title + " \u00b7 asleep");
+      putText(title, ev.title + S().sufAsleep);
       putClass(title, "evtitle" + (over ? " over" : ""));
-      put(meta, "Down at <b>" + hhmm(from) + "</b>");
+      put(meta, S().downAt(hhmm(from)));
       putText(clock, fmt(slept * 60));
       putClass(clock, "clock" + (over ? " done flash" : ""));
 
       if (over) {
         put(st, ev.kind === "nap"
-          ? "<b>Over the cap. Wake her now</b> &mdash; open the door, kill the white noise, open the curtains."
-          : "<b>12 hours.</b> Time to wake her.");
+          ? S().napOver
+          : S().nightOver);
       } else if (ev.kind === "nap") {
-        put(st, "Max <b>" + dur(cap) + "</b> &mdash; up by <b>" + hhmm(from + cap) + "</b>.");
+        put(st, S().napMax(dur(cap), hhmm(from + cap)));
       } else {
-        put(st, "Nothing before <b>06:00</b>. Wake her by <b>" + hhmm(from + cap) + "</b>.");
+        put(st, S().nightMax(hhmm(from + cap)));
       }
 
       if (ev.kind === "nap") {
-        setControls([{ label: "She woke", cls: "primary", fn: function () { logAction("nap_awake", "Awake"); } }]);
+        setControls([{ label: S().bWoke, cls: "primary", fn: function () { logAction("nap_awake", S().lAwake); } }]);
         return;
       }
 
@@ -967,15 +1337,15 @@
            06:00 onward   morning */
       if (holding) { renderHold(); return; }
 
-      setControls([{ label: "She woke", cls: "primary", fn: function () {
+      setControls([{ label: S().bWoke, cls: "primary", fn: function () {
         var m = nowMin();
         /* Morning only inside 06:00–12:00. A 20:15 waking is after 06:00 on
            the clock but is plainly still the evening. */
         if (m >= DAY.morningFloor && m < 12 * 60) {
-          logAction("morning_awake", "Up for the day");
+          logAction("morning_awake", S().bUp);
         } else if (m >= DAY.holdFrom && m < DAY.morningFloor) {
           holding = true;
-          logAction("wake_start", "Awake");
+          logAction("wake_start", S().lAwake);
           render();
         } else {
           seqStart("night");
@@ -989,23 +1359,23 @@
     var late = secs < 0;
     var then = nextAfter(ev);
 
-    putText(title, ev.title + (late ? " \u00b7 overdue" : " \u00b7 next"));
+    putText(title, ev.title + (late ? S().sufLate : S().sufNext));
     putClass(title, "evtitle" + (late ? " due" : ""));
     putText(clock, fmt(Math.abs(secs)));
     putClass(clock, "clock" + (late ? " done" : ""));
 
-    var bits = ["Scheduled <b>" + hhmm(ev.at) + "</b>"];
-    if (ev.key !== "wakeup") bits.push("then " + then.title.toLowerCase() + " <b>" + hhmm(then.at) + "</b>");
+    var bits = [S().scheduled(hhmm(ev.at))];
+    if (ev.key !== "wakeup") bits.push(S().thenNext(then.title, hhmm(then.at)));
     var since = awakeSince();
-    if (since !== null) bits.push("awake <b>" + dur(elapsedSince(since, nowMin())) + "</b>");
+    if (since !== null) bits.push(S().awakeFor(dur(elapsedSince(since, nowMin()))));
     put(meta, bits.join(" &middot; "));
 
     if (ev.kind === "wakeup") {
-      put(st, "Nothing before <b>06:00</b> counts as morning. After 05:30, no visits &mdash; hold out as close to 06:00 as you can.");
-      setControls([{ label: "Up for the day", cls: "primary", fn: function () { logAction("morning_awake", "Up for the day"); } }]);
+      put(st, S().wakeHint);
+      setControls([{ label: "Up for the day", cls: "primary", fn: function () { logAction("morning_awake", S().bUp); } }]);
     } else {
-      put(st, "Finish the routine, then start. The wait begins when she starts crying.");
-      setControls([{ label: SEQ[ev.kind].startLabel, cls: "primary", fn: function () { seqStart(ev.kind); } }]);
+      put(st, S().startHint);
+      setControls([{ label: S().bStart, cls: "primary", fn: function () { seqStart(ev.kind); } }]);
     }
   }
 
@@ -1026,19 +1396,19 @@
     var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
     var left = DAY.morningFloor * 60 - nowSec();
 
-    putText(title, left > 0 ? "Holding for 06:00" : "Morning");
+    putText(title, left > 0 ? S().holdTitle : S().holdMorning);
     putClass(title, "evtitle" + (left > 0 ? " due" : ""));
-    put(meta, "Awake before 06:00 &middot; no visits");
+    put(meta, S().holdMeta);
     putText(clock, fmt(Math.abs(left)));
     putClass(clock, "clock" + (left > 0 ? "" : " done"));
 
     put(st, left > 0
-      ? "Leave her without visits until as close to <b>06:00</b> as you can."
-      : "<b>Morning.</b> Take her out of the room and feed in a bright environment.");
+      ? S().holdWait
+      : S().holdDone);
 
     setControls([
-      { label: "Up for the day", cls: "primary", fn: function () { holding = false; logAction("morning_awake", "Up for the day"); } },
-      { label: "Back asleep", fn: function () { holding = false; logAction("night_waking", "Back asleep"); } }
+      { label: S().bUp, cls: "primary", fn: function () { holding = false; logAction("morning_awake", S().bUp); } },
+      { label: S().bBackAsleep, fn: function () { holding = false; logAction("night_waking", S().bBackAsleep); } }
     ]);
   }
 
@@ -1053,18 +1423,18 @@
       putText(clock, "--:--");
       putClass(clock, "clock");
       put(st, idleText);
-      setControls([{ label: cfg.startLabel, cls: "primary", fn: function () { seqStart(kind); } }]);
+      setControls([{ label: S().bStart, cls: "primary", fn: function () { seqStart(kind); } }]);
       return;
     }
 
-    putText(title, headline + " \u00b7 settling");
+    putText(title, headline + S().sufSettling);
     putClass(title, "evtitle");
 
-    var bits = ["Total <b>" + fmt(seqElapsed()) + "</b>"];
+    var bits = [S().totalIs(fmt(seqElapsed()))];
     if (cfg.attempts) {
-      bits.push("try <b>" + (seq.attempt + 1) + "</b>");
+      bits.push(S().tryIs(seq.attempt + 1));
       if (seq.phase !== "break" && seq.phase !== "breakDone" && attemptLimit() !== null) {
-        bits.push("<b>" + fmt(Math.max(0, attemptLimit() - attemptElapsed())) + "</b> left");
+        bits.push(S().leftIs(fmt(Math.max(0, attemptLimit() - attemptElapsed()))));
       }
     }
     put(meta, bits.join(" &middot; "));
@@ -1073,33 +1443,33 @@
     putClass(clock, "clock" + (remain !== null && remain <= 0 ? " done flash" : ""));
 
     var atReset = cfg.resetAfter && seqElapsed() >= cfg.resetAfter;
-    put(st, TEXT[seq.phase === "waitDone" && atReset ? "resetOffer" : seq.phase] || "");
+    put(st, S().loop[seq.phase === "waitDone" && atReset ? "resetOffer" : seq.phase] || "");
 
-    var asleep  = { label: cfg.asleepLabel, fn: seqAsleep };
-    var stopBtn = { label: "Stop", cls: "ghost", fn: seqStop };
-    var quiet   = { label: "She quieted", fn: function () { phase("quiet", null); } };
+    var asleep  = { label: S().bAsleep, fn: seqAsleep };
+    var stopBtn = { label: S().bStop, cls: "ghost", fn: seqStop };
+    var quiet   = { label: S().bQuiet, fn: function () { phase("quiet", null); } };
 
     if (seq.phase === "wait")             setControls([asleep, quiet, stopBtn]);
     else if (seq.phase === "quiet") {
-      put(st, "Quiet for now. <b>Leave her.</b> Start the wait again only if she picks back up.");
-      setControls([{ label: "Crying again", cls: "primary", fn: function () { phase("wait", cfg.wait); } }, asleep, stopBtn]);
+      put(st, S().loop.quiet);
+      setControls([{ label: S().bCrying, cls: "primary", fn: function () { phase("wait", cfg.wait); } }, asleep, stopBtn]);
     }
     else if (seq.phase === "waitDone")    setControls(atReset
-        ? [{ label: "Do a reset", cls: "primary", fn: function () { seq.startedAt = Date.now(); phase("wait", cfg.wait); } },
-           { label: "Keep going", fn: function () { phase("wait", cfg.wait); } }, asleep]
-        : [{ label: "Check in \u2014 60 sec", cls: "primary", fn: function () { phase("checkin", cfg.checkin); } }, asleep, stopBtn]);
+        ? [{ label: S().bReset, cls: "primary", fn: function () { seq.startedAt = Date.now(); phase("wait", cfg.wait); } },
+           { label: S().bKeep, fn: function () { phase("wait", cfg.wait); } }, asleep]
+        : [{ label: S().bCheckin, cls: "primary", fn: function () { phase("checkin", cfg.checkin); } }, asleep, stopBtn]);
     else if (seq.phase === "checkin" || seq.phase === "checkinDone")
-      setControls([{ label: "Left the room", cls: "primary", fn: function () { phase("wait", cfg.wait); } }, asleep]);
-    else if (seq.phase === "attemptDone") setControls([{ label: "Start 15-min break", cls: "primary", fn: function () { phase("break", cfg.breakSecs); } }, asleep, stopBtn]);
+      setControls([{ label: S().bLeft, cls: "primary", fn: function () { phase("wait", cfg.wait); } }, asleep]);
+    else if (seq.phase === "attemptDone") setControls([{ label: S().bBreak, cls: "primary", fn: function () { phase("break", cfg.breakSecs); } }, asleep, stopBtn]);
     else if (seq.phase === "break")       setControls([asleep, stopBtn]);
     else if (seq.phase === "breakDone")   setControls(
         seq.attempt + 1 < cfg.attempts.length
-          ? [{ label: "Second try", cls: "primary", fn: function () {
+          ? [{ label: S().bSecond, cls: "primary", fn: function () {
                 seq.attempt++; seq.attemptStartedAt = Date.now();
                 logAction(cfg.startAction, cfg.startLabel);
                 phase("wait", cfg.wait);
               } }, asleep, stopBtn]
-          : [{ label: "Emergency nap", cls: "primary", fn: function () { phase("exhausted", null); } }, stopBtn]);
+          : [{ label: S().bEmergency, cls: "primary", fn: function () { phase("exhausted", null); } }, stopBtn]);
     else setControls([asleep, stopBtn]);
   }
 
@@ -1117,7 +1487,7 @@
     var now = new Date();
     queue.push({ ts: now.toISOString(), mode: mode, action: action, value: value || "", note: note || "", who: WHO });
     lastEventAt = now;
-    status(label + " at " + clockOf(now) + " \u2014 sending\u2026");
+    status(S().sending(label, clockOf(now)));
     if (navigator.vibrate) { try { navigator.vibrate(30); } catch (e) {} }
     flush();
   }
@@ -1127,7 +1497,7 @@
   function log(def) {
     var value = "", note = "";
     if (def.note) {
-      note = window.prompt("Note for the log") || "";
+      note = window.prompt(S().pNote) || "";
       if (!note.trim()) return;
     } else if (def.ask) {
       value = window.prompt(def.ask) || "";
@@ -1138,7 +1508,7 @@
 
   function flush() {
     if (sending || !queue.length) return;
-    if (!SCRIPT_URL) { status(queue.length + " held \u2014 no script URL set", "bad"); return; }
+    if (!SCRIPT_URL) { status(S().noUrl(queue.length), "bad"); return; }
 
     sending = true;
     var batch = queue.slice();
@@ -1156,7 +1526,7 @@
           queue = queue.slice(batch.length);
           if (res.status) sheetState = res.status;
           var cells = (res.cells || []).join(", ");
-          status(cells ? "Written to " + cells : "Logged", "ok");
+          status(cells ? S().wrote(cells) : S().logged, "ok");
           $("retryBtn").classList.add("hide");
           render();
         } else {
@@ -1164,7 +1534,7 @@
           if (msg === "Bad token") {
             queue = []; store.set("sleeplog.pin", ""); TOKEN = "";
             showGate();
-            $("gateMsg").textContent = "That PIN was rejected. Try again.";
+            $("gateMsg").textContent = S().gateBad;
             return;
           }
           status(msg + " \u2014 " + queue.length + " held", "bad");
@@ -1172,7 +1542,7 @@
       })
       .catch(function () {
         sending = false;
-        status("Offline \u2014 " + queue.length + " held", "bad");
+        status(S().held(queue.length), "bad");
       });
   }
 
@@ -1182,14 +1552,14 @@
     if (key === logKey) return;
     logKey = key;
 
-    var defs = LOG_BUTTONS[key] || [], row = $("logrow"), bar = $("logbar");
+    var defs = logButtons()[key] || [], row = $("logrow"), bar = $("logbar");
     if (!defs.length) { bar.classList.add("hide"); return; }
     bar.classList.remove("hide");
     row.innerHTML = defs.map(function (d) { return '<button class="logbtn">' + d.label + "</button>"; }).join("");
     Array.prototype.forEach.call(row.children, function (b, i) {
       b.onclick = function () { log(defs[i]); };
     });
-    if (!queue.length) status("Ready to log");
+    if (!queue.length) status(S().ready);
   }
 
   function fetchStatus() {
@@ -1216,9 +1586,33 @@
     b.onclick = function () { setMode(b.dataset.mode); };
   });
 
+  function applyLang() {
+    var t = S();
+    $("langToggle").textContent = t.langBtn;
+    $("lightToggle").textContent = document.body.classList.contains("day") ? t.light[1] : t.light[0];
+    $("tabNow").textContent = t.tabNow;
+    $("tabRef").textContent = t.tabRef;
+
+    document.querySelector(".gatetitle").textContent = t.gateTitle;
+    document.querySelector(".gatehint").textContent  = t.gateHint;
+    document.querySelector('label[for="whoIn"]').textContent = t.gateName;
+    document.querySelector('label[for="pinIn"]').textContent = t.gatePin;
+    $("gateSave").textContent = t.gateSave;
+    $("retryBtn").textContent = t.retry;
+
+    contentKey = null; controlsSig = null; logKey = null;
+    render();
+  }
+
+  $("langToggle").onclick = function () {
+    lang = lang === "tl" ? "en" : "tl";
+    store.set("sleeplog.lang", lang);
+    applyLang();
+  };
+
   $("lightToggle").onclick = function () {
     var day = document.body.classList.toggle("day");
-    this.textContent = day ? "NIGHT MODE" : "DAY MODE";
+    this.textContent = day ? S().light[1] : S().light[0];
     document.querySelector('meta[name="theme-color"]').setAttribute("content", day ? "#E9EDEC" : "#12141A");
   };
 
@@ -1245,12 +1639,12 @@
 
   $("gateSave").onclick = function () {
     var who = $("whoIn").value.trim(), pin = $("pinIn").value.trim();
-    if (!who || !pin) { $("gateMsg").textContent = "Both fields are needed."; return; }
+    if (!who || !pin) { $("gateMsg").textContent = S().gateBoth; return; }
     WHO = who; TOKEN = pin;
     store.set("sleeplog.who", who);
     store.set("sleeplog.pin", pin);
     $("gate").classList.add("hide");
-    status("Set up for " + who);
+    status(S().setUpFor(who));
     fetchStatus();
   };
 
@@ -1261,6 +1655,7 @@
   TOKEN = store.get("sleeplog.pin") || "";
   WHO   = store.get("sleeplog.who") || "";
 
+  applyLang();
   setMode("now");
   if (!TOKEN) showGate(); else fetchStatus();
 })();
