@@ -963,6 +963,11 @@
       asleepLabel: "She's asleep",       asleepAction: "bed_asleep",
       wait: 600, checkin: 60, resetAfter: 3600, attempts: null
     },
+    napstir: {
+      startLabel: null,           startAction: null,
+      asleepLabel: null,          asleepAction: null,
+      wait: 600, checkin: 60, resetAfter: null, attempts: null
+    },
     night: {
       startLabel: "She woke",     startAction: "wake_start",
       asleepLabel: "Back asleep", asleepAction: "night_waking",
@@ -1291,7 +1296,14 @@
         : ev.kind);
 
     /* A settling loop in progress takes over the display. */
-    if (seq) { renderLoop(seq.kind, seq.kind === "night" ? "Night waking" : ev.title, ""); return; }
+    if (seq) {
+      renderLoop(seq.kind,
+        seq.kind === "night" ? S().evNightWake
+          : seq.kind === "napstir" ? ev.title + " \u00b7 " + S().stirTitle
+          : ev.title,
+        "");
+      return;
+    }
 
     if (ev.phase === "done") {
       putText(title, S().evDone);
@@ -1343,10 +1355,9 @@
       }
 
       if (ev.kind === "nap") {
-        if (napStir) { renderStir(ev); return; }
         setControls([
           { label: S().bWoke, cls: "primary", fn: function () { logAction("nap_awake", S().lAwake); } },
-          { label: S().bStir, fn: function () { napStir = true; run(600); } }
+          { label: S().bStir, fn: function () { seqResume("napstir"); } }
         ]);
         return;
       }
@@ -1420,25 +1431,9 @@
   }
 
   /* Short-nap rule: if she wakes early, leave her 10 minutes to reconnect
-     rather than ending the nap. Nothing is logged unless she stays awake. */
-  var napStir = false;
-
-  function renderStir(ev) {
-    var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
-    var from = ev.asleepAt !== null ? ev.asleepAt : ev.at;
-
-    putText(title, ev.title + " \u00b7 " + S().stirTitle);
-    putClass(title, "evtitle" + (remain !== null && remain <= 0 ? " due" : ""));
-    put(meta, S().stirMeta(dur(elapsedSince(from, nowMin()))));
-    putText(clock, remain === null ? "--:--" : fmt(Math.max(0, remain)));
-    putClass(clock, "clock" + (remain !== null && remain <= 0 ? " done flash" : ""));
-    put(st, remain !== null && remain <= 0 ? S().stirDone : S().stirWait);
-
-    setControls([
-      { label: S().bResettled, cls: "primary", fn: function () { napStir = false; stop(); endAt = null; remain = null; render(); } },
-      { label: S().bWoke, fn: function () { napStir = false; stop(); endAt = null; remain = null; logAction("nap_awake", S().lAwake); } }
-    ]);
-  }
+     rather than ending the nap. If she is still awake when that expires it
+     runs the same check-in loop as bedtime. Nothing is logged unless she
+     stays awake — a stir that resolves leaves the nap untouched. */
 
   function isNightHours() {
     var m = nowMin();
@@ -1502,8 +1497,13 @@
     var atReset = cfg.resetAfter && seqElapsed() >= cfg.resetAfter;
     put(st, S().loop[seq.phase === "waitDone" && atReset ? "resetOffer" : seq.phase] || "");
 
-    var asleep  = { label: S().bAsleep, fn: seqAsleep };
-    var stopBtn = { label: S().bStop, cls: "ghost", fn: seqStop };
+    var asleep  = kind === "napstir"
+      ? { label: S().bResettled, fn: seqStop }
+      : { label: S().bAsleep, fn: seqAsleep };
+
+    var stopBtn = kind === "napstir"
+      ? { label: S().bWoke, cls: "ghost", fn: function () { seqStop(); logAction("nap_awake", S().lAwake); } }
+      : { label: S().bStop, cls: "ghost", fn: seqStop };
     var quiet   = { label: S().bQuiet, fn: function () { phase("quiet", null); } };
 
     if (seq.phase === "wait")             setControls([asleep, quiet, stopBtn]);
