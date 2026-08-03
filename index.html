@@ -370,6 +370,7 @@
       wakeHint: "Nothing before <b>06:00</b> counts as morning. After 05:30, no visits \u2014 hold out as close to 06:00 as you can.",
       napMax: function (c, t) { return "Max <b>" + c + "</b> \u2014 up by <b>" + t + "</b>."; },
       nightMax: function (t) { return "Nothing before <b>06:00</b>. Wake her by <b>" + t + "</b>."; },
+      nightUseRow: "If she wakes, use <b>Woke</b> below.",
       napOver: "<b>Over the cap. Wake her now</b> \u2014 open the door, kill the white noise, open the curtains.",
       nightOver: "<b>12 hours.</b> Time to wake her.",
 
@@ -441,6 +442,7 @@
       wakeHint: "Walang itinuturing na umaga bago mag-<b>06:00</b>. Pagkatapos ng 05:30, huwag nang pumasok \u2014 maghintay hangga't malapit sa 06:00.",
       napMax: function (c, t) { return "Hanggang <b>" + c + "</b> \u2014 gisingin bago mag-<b>" + t + "</b>."; },
       nightMax: function (t) { return "Wala bago mag-<b>06:00</b>. Gisingin bago mag-<b>" + t + "</b>."; },
+      nightUseRow: "Kung magising siya, pindutin ang <b>Gising</b> sa ibaba.",
       napOver: "<b>Lampas na sa hangganan. Gisingin na siya</b> \u2014 buksan ang pinto, patayin ang white noise, buksan ang kurtina.",
       nightOver: "<b>12 oras na.</b> Oras nang gisingin siya.",
 
@@ -978,7 +980,7 @@
         { label: t.lNote,   action: "note", note: true }
       ],
       night: [
-        { label: t.lWoke,        action: "wake_start" },
+        { label: t.lWoke,        action: "wake_start", run: onNightWake },
         { label: t.bBackAsleep,  action: "night_waking" },
         { label: t.lFed,         action: "feed", ask: t.pFed, optional: true },
         { label: t.lNote,        action: "note", note: true }
@@ -1271,7 +1273,10 @@
     }
 
     setContent(contentFor(ev));
-    renderLogButtons(ev.key === "night" ? "night" : ev.kind === "wakeup" ? "wakeup" : ev.kind);
+    renderLogButtons(
+      (ev.key === "night" || isNightHours()) ? "night"
+        : ev.kind === "wakeup" ? "wakeup"
+        : ev.kind);
 
     /* A settling loop in progress takes over the display. */
     if (seq) { renderLoop(seq.kind, seq.kind === "night" ? "Night waking" : ev.title, ""); return; }
@@ -1337,20 +1342,17 @@
            06:00 onward   morning */
       if (holding) { renderHold(); return; }
 
-      setControls([{ label: S().bWoke, cls: "primary", fn: function () {
-        var m = nowMin();
-        /* Morning only inside 06:00–12:00. A 20:15 waking is after 06:00 on
-           the clock but is plainly still the evening. */
-        if (m >= DAY.morningFloor && m < 12 * 60) {
+      /* Nothing prominent to tap overnight — a big button at 2am is how a
+         night gets ended by accident. Night wakings go through the manual
+         row below; this appears only once it is actually morning. */
+      if (nowMin() >= DAY.morningFloor && nowMin() < 12 * 60) {
+        setControls([{ label: S().bUp, cls: "primary", fn: function () {
           logAction("morning_awake", S().bUp);
-        } else if (m >= DAY.holdFrom && m < DAY.morningFloor) {
-          holding = true;
-          logAction("wake_start", S().lAwake);
-          render();
-        } else {
-          seqStart("night");
-        }
-      } }]);
+        } }]);
+      } else {
+        setControls([]);
+        if (!over) put(st, st.innerHTML + " " + S().nightUseRow);
+      }
       return;
     }
 
@@ -1386,6 +1388,24 @@
     if (s.nap1.awake !== null)       return s.nap1.awake;
     if (s.morningWake !== null)      return s.morningWake;
     return null;
+  }
+
+  /* What a night waking does depends on the clock. Shared so the manual row
+     and any future caller can't drift apart. */
+  function onNightWake() {
+    var m = nowMin();
+    if (m >= DAY.holdFrom && m < DAY.morningFloor) {
+      holding = true;
+      logAction("wake_start", S().lAwake);
+      render();
+    } else {
+      seqStart("night");
+    }
+  }
+
+  function isNightHours() {
+    var m = nowMin();
+    return m >= 18 * 60 || m < DAY.morningFloor;
   }
 
   /* 05:30–06:00: the plan says no visits, so there is no check-in loop to
@@ -1495,6 +1515,7 @@
   function logAction(action, label) { if (action) push(action, "", "", label); }
 
   function log(def) {
+    if (def.run) { def.run(); return; }
     var value = "", note = "";
     if (def.note) {
       note = window.prompt(S().pNote) || "";
