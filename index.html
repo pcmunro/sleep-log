@@ -344,6 +344,12 @@
       setUpFor: function (w) { return "Set up for " + w; },
 
       ready: "Ready to log", retry: "Retry",
+      secretMissing: "Script secret not set \u2014 fix the Apps Script",
+      bStir: "She's stirring \u2014 wait 10 min", bResettled: "She went back to sleep",
+      stirTitle: "Stirring",
+      stirWait: "Leave her. Under an hour in, treat it like a night waking and give her a chance to reconnect.",
+      stirDone: "<b>Not back to sleep.</b> Get her up and try again at the next nap.",
+      stirMeta: function (d) { return "Nap so far <b>" + d + "</b>"; },
       sending: function (l, t) { return l + " at " + t + " \u2014 sending\u2026"; },
       wrote: function (c) { return "Written to " + c; }, logged: "Logged",
       held: function (n) { return "Offline \u2014 " + n + " held"; },
@@ -416,6 +422,12 @@
       setUpFor: function (w) { return "Naka-set up para kay " + w; },
 
       ready: "Handa nang mag-log", retry: "Ulitin",
+      secretMissing: "Hindi naka-set ang secret sa script \u2014 ayusin ang Apps Script",
+      bStir: "Gumagalaw siya \u2014 hintayin 10 min", bResettled: "Bumalik siya sa tulog",
+      stirTitle: "Gumagalaw",
+      stirWait: "Iwan siya. Kung wala pang isang oras, ituring itong night waking at bigyan siya ng pagkakataong makabalik sa tulog.",
+      stirDone: "<b>Hindi na bumalik sa tulog.</b> Ibangon na siya at subukan ulit sa susunod na nap.",
+      stirMeta: function (d) { return "Nap hanggang ngayon <b>" + d + "</b>"; },
       sending: function (l, t) { return l + " nang " + t + " \u2014 ipinapadala\u2026"; },
       wrote: function (c) { return "Naisulat sa " + c; }, logged: "Naitala",
       held: function (n) { return "Walang koneksyon \u2014 " + n + " ang naghihintay"; },
@@ -1331,7 +1343,11 @@
       }
 
       if (ev.kind === "nap") {
-        setControls([{ label: S().bWoke, cls: "primary", fn: function () { logAction("nap_awake", S().lAwake); } }]);
+        if (napStir) { renderStir(ev); return; }
+        setControls([
+          { label: S().bWoke, cls: "primary", fn: function () { logAction("nap_awake", S().lAwake); } },
+          { label: S().bStir, fn: function () { napStir = true; run(600); } }
+        ]);
         return;
       }
 
@@ -1401,6 +1417,27 @@
     } else {
       seqStart("night");
     }
+  }
+
+  /* Short-nap rule: if she wakes early, leave her 10 minutes to reconnect
+     rather than ending the nap. Nothing is logged unless she stays awake. */
+  var napStir = false;
+
+  function renderStir(ev) {
+    var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
+    var from = ev.asleepAt !== null ? ev.asleepAt : ev.at;
+
+    putText(title, ev.title + " \u00b7 " + S().stirTitle);
+    putClass(title, "evtitle" + (remain !== null && remain <= 0 ? " due" : ""));
+    put(meta, S().stirMeta(dur(elapsedSince(from, nowMin()))));
+    putText(clock, remain === null ? "--:--" : fmt(Math.max(0, remain)));
+    putClass(clock, "clock" + (remain !== null && remain <= 0 ? " done flash" : ""));
+    put(st, remain !== null && remain <= 0 ? S().stirDone : S().stirWait);
+
+    setControls([
+      { label: S().bResettled, cls: "primary", fn: function () { napStir = false; stop(); endAt = null; remain = null; render(); } },
+      { label: S().bWoke, fn: function () { napStir = false; stop(); endAt = null; remain = null; logAction("nap_awake", S().lAwake); } }
+    ]);
   }
 
   function isNightHours() {
@@ -1552,6 +1589,12 @@
           render();
         } else {
           var msg = res && res.error ? res.error : "Rejected";
+          if (msg === "SECRET not set") {
+            /* The script's secret is still the placeholder — the PIN on this
+               phone is probably fine, so don't throw it away. */
+            status(S().secretMissing, "bad");
+            return;
+          }
           if (msg === "Bad token") {
             queue = []; store.set("sleeplog.pin", ""); TOKEN = "";
             showGate();
