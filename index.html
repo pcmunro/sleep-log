@@ -159,6 +159,25 @@
   }
   #gateSave { width: 100%; }
 
+  .missed {
+    margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line);
+    text-align: left;
+  }
+  .missed h4 {
+    margin: 0 0 8px; font-family: var(--mono); font-size: 10px;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--warn); font-weight: 400;
+  }
+  .missrow {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 14px;
+  }
+  .missrow:last-child { border-bottom: 0; }
+  .missbtn {
+    flex: 0 0 auto; background: none; border: 1px solid var(--amber-soft);
+    color: var(--amber); font-family: var(--mono); font-size: 10px;
+    letter-spacing: .08em; padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  }
+
   /* ---------- Logging ---------- */
   .logbar { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
   .logrow { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -296,6 +315,7 @@
     <div class="clock" id="clock">--:--</div>
     <div class="state" id="state"></div>
     <div class="controls" id="controls"></div>
+    <div class="missed hide" id="missed"></div>
     <div class="logbar" id="logbar">
       <div class="logrow" id="logrow"></div>
       <div class="logstat" id="logstat">
@@ -344,6 +364,11 @@
       setUpFor: function (w) { return "Set up for " + w; },
 
       ready: "Ready to log", retry: "Retry",
+      missedTitle: "Missed \u2014 tap to fill in",
+      missSet: "Set",
+      missPrompt: function (w) { return w + " \u2014 what time? (HH:MM)"; },
+      fCrib: "in crib", fAsleep: "asleep", fAwake: "awake", fWake: "woke",
+      windowNote: function (t) { return "3h window \u2192 <b>" + t + "</b>"; },
       secretMissing: "Script secret not set \u2014 fix the Apps Script",
       bStir: "She's stirring \u2014 wait 10 min", bResettled: "She went back to sleep",
       stirTitle: "Stirring",
@@ -422,6 +447,11 @@
       setUpFor: function (w) { return "Naka-set up para kay " + w; },
 
       ready: "Handa nang mag-log", retry: "Ulitin",
+      missedTitle: "Nakaligtaan \u2014 pindutin para punan",
+      missSet: "Ilagay",
+      missPrompt: function (w) { return w + " \u2014 anong oras? (HH:MM)"; },
+      fCrib: "sa crib", fAsleep: "tulog", fAwake: "gising", fWake: "gumising",
+      windowNote: function (t) { return "3 oras na window \u2192 <b>" + t + "</b>"; },
       secretMissing: "Hindi naka-set ang secret sa script \u2014 ayusin ang Apps Script",
       bStir: "Gumagalaw siya \u2014 hintayin 10 min", bResettled: "Bumalik siya sa tulog",
       stirTitle: "Gumagalaw",
@@ -941,6 +971,7 @@
     nap1At:  9 * 60 + 30,       // 09:30
     nap2At: 14 * 60 + 30,       // 14:30
     bedAt:  19 * 60 + 30,       // 19:30
+    minWake: 180,               // never put her down inside 3 hrs of waking
 
     singleNapMax: 120,          // a single nap, earlier in the day
     daytimeMax:   210,          // 3.5 hrs across both naps
@@ -1054,16 +1085,16 @@
      of them holding local state. */
 
   var STEPS = [
-    { row: 11, grp: null,   field: "morningWake", event: "wakeup",  kind: "wakeup",  title: S().evWake, at: "wakeAt" },
-    { row: 14, grp: "nap1", field: "crib",        event: "nap1",    kind: "nap",     title: S().evNap1, at: "nap1At" },
-    { row: 15, grp: "nap1", field: "asleep",      event: "nap1",    kind: "nap",     title: S().evNap1, at: "nap1At" },
-    { row: 16, grp: "nap1", field: "awake",       event: "nap1",    kind: "nap",     title: S().evNap1, at: "nap1At" },
-    { row: 21, grp: "nap2", field: "crib",        event: "nap2",    kind: "nap",     title: S().evNap2, at: "nap2At" },
-    { row: 22, grp: "nap2", field: "asleep",      event: "nap2",    kind: "nap",     title: S().evNap2, at: "nap2At" },
-    { row: 23, grp: "nap2", field: "awake",       event: "nap2",    kind: "nap",     title: S().evNap2, at: "nap2At" },
-    { row: 30, grp: "bed",  field: "crib",        event: "bedtime", kind: "bedtime", title: S().evBed, at: "bedAt" },
-    { row: 31, grp: "bed",  field: "asleep",      event: "bedtime", kind: "bedtime", title: S().evBed, at: "bedAt" },
-    { row: 32, grp: "bed",  field: "awake",       event: "night",   kind: "bedtime", title: S().evNight, at: "wakeAt" }
+    { row: 11, grp: null,   field: "morningWake", event: "wakeup",  kind: "wakeup",  title: S().evWake, at: "wakeAt", act: "morning_awake" },
+    { row: 14, grp: "nap1", field: "crib",        event: "nap1",    kind: "nap",     title: S().evNap1, at: "nap1At", act: "nap_crib" },
+    { row: 15, grp: "nap1", field: "asleep",      event: "nap1",    kind: "nap",     title: S().evNap1, at: "nap1At", act: "nap_asleep" },
+    { row: 16, grp: "nap1", field: "awake",       event: "nap1",    kind: "nap",     title: S().evNap1, at: "nap1At", act: "nap_awake" },
+    { row: 21, grp: "nap2", field: "crib",        event: "nap2",    kind: "nap",     title: S().evNap2, at: "nap2At", act: "nap_crib" },
+    { row: 22, grp: "nap2", field: "asleep",      event: "nap2",    kind: "nap",     title: S().evNap2, at: "nap2At", act: "nap_asleep" },
+    { row: 23, grp: "nap2", field: "awake",       event: "nap2",    kind: "nap",     title: S().evNap2, at: "nap2At", act: "nap_awake" },
+    { row: 30, grp: "bed",  field: "crib",        event: "bedtime", kind: "bedtime", title: S().evBed, at: "bedAt", act: "bed_crib" },
+    { row: 31, grp: "bed",  field: "asleep",      event: "bedtime", kind: "bedtime", title: S().evBed, at: "bedAt", act: "bed_asleep" },
+    { row: 32, grp: "bed",  field: "awake",       event: "night",   kind: "bedtime", title: S().evNight, at: "wakeAt", act: "morning_awake" }
   ];
 
   function valueAt(step) {
@@ -1073,11 +1104,26 @@
   }
 
   /* The step we're waiting on, plus the times already recorded for it. */
+  function lastFilledIndex() {
+    var last = -1;
+    for (var i = 0; i < STEPS.length; i++) if (valueAt(STEPS[i]) !== null) last = i;
+    return last;
+  }
+
+  /* Blanks behind the frontier are entries someone forgot, not the thing
+     we're waiting on. Listing them separately stops one missed tap from
+     freezing the whole day on a step that has already passed. */
+  function missedSteps() {
+    var last = lastFilledIndex(), out = [];
+    for (var i = 0; i < last; i++) if (valueAt(STEPS[i]) === null) out.push(STEPS[i]);
+    return out;
+  }
+
   function currentEvent() {
     if (!sheetState) return null;
 
     var step = null;
-    for (var i = 0; i < STEPS.length; i++) {
+    for (var i = lastFilledIndex() + 1; i < STEPS.length; i++) {
       if (valueAt(STEPS[i]) === null) { step = STEPS[i]; break; }
     }
     if (!step) return { key: "done", kind: "bedtime", title: S().evDone, phase: "done", at: DAY.bedAt };
@@ -1098,6 +1144,17 @@
       cribAt:   grp ? grp.crib : null,
       asleepAt: grp ? grp.asleep : null
     };
+  }
+
+  /* The nap anchors are targets with a floor under them — if she woke late,
+     holding the anchor would put her down inside a 3-hour wake window.
+     Bedtime is deliberately exempt: it stays fixed, and a late nap 2 is
+     handled by the 16:30 awake-by rule rather than by moving bedtime. */
+  function targetFor(ev) {
+    var s = sheetState, floor = null;
+    if (ev.key === "nap1" && s.morningWake !== null)     floor = s.morningWake + DAY.minWake;
+    else if (ev.key === "nap2" && s.nap1.awake !== null) floor = s.nap1.awake + DAY.minWake;
+    return floor === null ? ev.at : Math.max(ev.at, floor);
   }
 
   function nextAfter(ev) {
@@ -1270,6 +1327,7 @@
       $("clockwrap").classList.add("hide");
       setContent("ref");
       renderLogButtons("ref");
+      $("missed").classList.add("hide");
       return;
     }
     $("clockwrap").classList.remove("hide");
@@ -1294,6 +1352,7 @@
       (ev.key === "night" || isNightHours()) ? "night"
         : ev.kind === "wakeup" ? "wakeup"
         : ev.kind);
+    renderMissed();
 
     /* A settling loop in progress takes over the display. */
     if (seq) {
@@ -1384,7 +1443,8 @@
     }
 
     /* Upcoming. */
-    var secs = ev.at * 60 - nowSec();
+    var target = targetFor(ev);
+    var secs = target * 60 - nowSec();
     var late = secs < 0;
     var then = nextAfter(ev);
 
@@ -1394,6 +1454,7 @@
     putClass(clock, "clock" + (late ? " done" : ""));
 
     var bits = [S().scheduled(hhmm(ev.at))];
+    if (target !== ev.at) bits.push(S().windowNote(hhmm(target)));
     if (ev.key !== "wakeup") bits.push(S().thenNext(then.title, hhmm(then.at)));
     var since = awakeSince();
     if (since !== null) bits.push(S().awakeFor(dur(elapsedSince(since, nowMin()))));
@@ -1406,6 +1467,51 @@
       put(st, S().startHint);
       setControls([{ label: S().bStart, cls: "primary", fn: function () { seqStart(ev.kind); } }]);
     }
+  }
+
+  function fieldLabel(step) {
+    var t = S();
+    if (step.field === "morningWake") return t.fWake;
+    if (step.field === "crib")   return t.fCrib;
+    if (step.field === "asleep") return t.fAsleep;
+    return t.fAwake;
+  }
+
+  /* A missed entry is filled by sending the same action with a corrected
+     timestamp — the script derives the cell from the time, so nothing new
+     is needed on that side. */
+  function renderMissed() {
+    var box = $("missed"), list = missedSteps();
+    if (!list.length) { box.classList.add("hide"); box.innerHTML = ""; return; }
+    box.classList.remove("hide");
+
+    box.innerHTML = "<h4>" + S().missedTitle + "</h4>" + list.map(function (st) {
+      return '<div class="missrow"><span>' + st.title + " \u00b7 " + fieldLabel(st) +
+             '</span><button class="missbtn">' + S().missSet + "</button></div>";
+    }).join("");
+
+    Array.prototype.forEach.call(box.querySelectorAll(".missbtn"), function (b, i) {
+      b.onclick = function () { fillMissed(list[i]); };
+    });
+  }
+
+  function fillMissed(step) {
+    var raw = window.prompt(S().missPrompt(step.title + " \u00b7 " + fieldLabel(step)));
+    if (!raw) return;
+    var m = raw.trim().match(/^(\d{1,2})[:.]?(\d{2})$/);
+    if (!m) return;
+
+    var h = Number(m[1]), mins = Number(m[2]);
+    if (h > 23 || mins > 59) return;
+
+    var when = new Date();
+    when.setHours(h, mins, 0, 0);
+    /* An early-hours entry typed during the day belongs to last night. */
+    if (h < 6 && nowMin() >= 6 * 60) when.setDate(when.getDate() - 1);
+
+    queue.push({ ts: when.toISOString(), mode: mode, action: step.act, value: "", note: "", who: WHO });
+    status(S().sending(step.title, hhmm(h * 60 + mins)));
+    flush();
   }
 
   function awakeSince() {
