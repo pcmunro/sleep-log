@@ -1,146 +1,3 @@
-
-Claude finished the response
-
-Architected mid-nap settling sequence mirroring nighttime check-in protocol
-Architected mid-nap settling sequence mirroring nighttime check-in protocol
-Then it's the same loop as bedtime — wait, check in, wait again. Let me rewire the stir to use the real settling machinery instead of the dead-end I built.
-
-
-Ran 2 commands, read a file
-Ran 2 commands, read a file
-index.html only.
-
-The stir now runs the same loop as bedtime rather than dead-ending:
-
-She's stirring — wait 10 min
-        ↓
-   10 min expires  →  [Check in — 60 sec]
-        ↓
-   60 sec expires  →  [Left the room]
-        ↓
-   back to the 10-min wait, and round again
-Two exits, available at every step. She went back to sleep stops the loop and writes nothing — the nap continues with its original asleep time intact, which is right because it never ended. She woke logs the wake and closes the nap out.
-
-No reset threshold on this one, since a mid-nap waking either resolves or becomes "get her up at the next nap" — the 60-minute reset belongs to bedtime.
-
-
-Charlotte sleep quick reference
-Code · HTML 
-
-Sleep log apps script
-GS 
-
-Readme
-Document · MD 
-
-Note for lindsay
-Document · MD 
-is this just an html update?
-
-Yes, HTML only.
-
-Two changes to incorporate: 
-1. There should be a minimum 3 hr wake window between sleep and naps. 
-2.  If the logging of an event is missed, the script should move on to the next or current event and provide the user and ability to update the missed times.
-
-
-Architected wake-window enforcement and retroactive logging system
-Architected wake-window enforcement and retroactive logging system
-Both are real gaps. Let me think through the second one before coding, because the fix has a subtlety.
-
-The row scan stops at the first blank, so a single missed entry freezes the app there forever. The fix is to find the last filled row and take the frontier from there — that skips gaps automatically. Everything blank before that point is a missed entry.
-
-For editing, no script change is needed: the existing actions already take their time from the event timestamp, so sending a corrected timestamp writes to the right cell.
-
-
-Ran 6 commands, read a file
-Ran 6 commands, read a file
-HTML only.
-
-Wake window. Anchors are now targets with a 3-hour floor under them. Woke at 07:00 → nap 1 at 10:00 rather than 09:30. Woke at 06:30 → still 09:30, since the anchor is already late enough. The meta line shows both — Scheduled 09:30 · 3h window → 10:00 — so it's clear why it moved. Applies to nap 2 off nap 1's wake, and to bedtime off nap 2's.
-
-Missed entries. The frontier is now taken from the last filled row rather than the first blank, so a gap no longer freezes the day. If nap 1's asleep time never got logged, the app moves on to nap 2 and lists Nap 1 · asleep under "Missed — tap to fill in." Tap Set, type 09:45, and it writes to the right cell. Times before 06:00 entered during the day are treated as last night.
-
-Two judgement calls to flag:
-
-I applied the 3-hour floor to bedtime as well as naps. You said naps; it's the same principle and the plan gives the same wake windows, but it does mean a late nap 2 pushes bedtime past 19:30 — the sample above gives 20:00. Say if you'd rather bedtime stayed fixed.
-
-And the missed list only shows blanks behind something that's filled. A day where nothing at all is logged shows no missed entries, because nothing has been skipped yet — the app just sits on Wake-up, correctly.
-
-
-Charlotte sleep quick reference
-Code · HTML 
-
-Sleep log apps script
-GS 
-
-Readme
-Document · MD 
-
-Note for lindsay
-Document · MD 
-Bed time should remain in a fixed window.
-
-
-Clarified bedtime anchor point and removed conflicting constraints
-Clarified bedtime anchor point and removed conflicting constraints
-HTML only.
-
-Bedtime is pinned at 19:30 regardless of when nap 2 ends — a 17:00 wake no longer pushes it to 20:00. The 3-hour floor still applies to both naps.
-
-That leaves the late-nap-2 case to the 4:30 awake-by rule, which is where the plan puts it anyway.
-
-
-Charlotte sleep quick reference
-Code · HTML 
-
-Sleep log apps script
-GS 
-
-Readme
-Document · MD 
-
-Note for lindsay
-Document · MD 
-There should be a dialog for each missed record in the day
-
-
-Disambiguated missed record logic and architected modal dialog solution
-Disambiguated missed record logic and architected modal dialog solution
-Two things there — every missed record in the day, not just ones behind the frontier, and a proper dialog rather than a browser prompt. Doing both.
-
-
-Ran 3 commands, read a file
-Ran 3 commands, read a file
-HTML only.
-
-Every missed record now lists, not just ones behind something already filled. A step counts as missed once the next event's anchor has come round — nap 1's entries appear from 14:30 onward, nap 2's from 19:30, wake-up's from 09:30. Bedtime waits until 23:00, since the night is still in progress before then. So a day where nobody logged anything still surfaces the whole backlog as the day moves on.
-
-Each one opens a proper dialog rather than a browser prompt — native time picker, so it's a spinner on both phones rather than typing 09:45 into a text box. It seeds with a sensible default, and Save/Cancel are real buttons. Both languages.
-
-One caveat worth knowing: the dialog writes through the same actions as a live tap, so the nap-1-versus-nap-2 split is still decided by the time you enter, at the 12:45 boundary. Entering 13:10 for a nap 1 wake would land in nap 2's row. Unlikely, but it's the one input that can put a value somewhere you didn't intend.
-
-
-Charlotte sleep quick reference
-Code · HTML 
-
-Sleep log apps script
-GS 
-
-Readme
-Document · MD 
-
-Note for lindsay
-Document · MD 
-
-
-
-
-
-Claude is AI and can make mistakes. Please double-check responses.
-
-
-Charlotte sleep quick reference · HTML
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#12141A">
 <link rel="manifest" href="manifest.webmanifest">
@@ -181,7 +38,7 @@ Charlotte sleep quick reference · HTML
     --sage: #4C8A7E;
     --warn: #A8412F;
   }
- 
+
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; }
   body {
@@ -195,7 +52,7 @@ Charlotte sleep quick reference · HTML
     transition: background .3s, color .3s;
   }
   #app { max-width: 480px; margin: 0 auto; }
- 
+
   /* ---------- Top bar ---------- */
   .bar {
     position: sticky; top: 0; z-index: 20;
@@ -234,7 +91,7 @@ Charlotte sleep quick reference · HTML
     padding: 8px 12px; border-radius: 8px; cursor: pointer;
   }
   .mode[aria-selected="true"] { background: var(--surface-2); color: var(--ink); border-color: var(--amber-soft); }
- 
+
   /* ---------- Timer ---------- */
   .clockwrap { padding: 22px calc(var(--pad) + env(safe-area-inset-right, 0px)) 18px calc(var(--pad) + env(safe-area-inset-left, 0px)); text-align: center; }
   .presets { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
@@ -301,7 +158,7 @@ Charlotte sleep quick reference · HTML
     font-family: var(--body); font-size: 16px;
   }
   #gateSave { width: 100%; }
- 
+
   .missed {
     margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line);
     text-align: left;
@@ -320,7 +177,7 @@ Charlotte sleep quick reference · HTML
     color: var(--amber); font-family: var(--mono); font-size: 10px;
     letter-spacing: .08em; padding: 5px 10px; border-radius: 6px; cursor: pointer;
   }
- 
+
   /* ---------- Logging ---------- */
   .logbar { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 14px; }
   .logrow { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -345,7 +202,7 @@ Charlotte sleep quick reference · HTML
   .flash { animation: pulse 1.1s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: .45 } }
   @media (prefers-reduced-motion: reduce) { .flash { animation: none } }
- 
+
   /* ---------- Content ---------- */
   .body {
     padding: 0 calc(var(--pad) + env(safe-area-inset-right, 0px))
@@ -377,7 +234,7 @@ Charlotte sleep quick reference · HTML
     text-transform: uppercase; color: var(--ink-faint);
     display: block; margin-bottom: 3px;
   }
- 
+
   ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
   ol.steps li {
     counter-increment: s; position: relative;
@@ -393,7 +250,7 @@ Charlotte sleep quick reference · HTML
   ol.steps li small { display: block; color: var(--ink-faint); font-size: 13px; }
   ol.steps li.final::before { border-color: var(--amber); color: var(--amber); }
   ol.steps li.final { color: var(--amber); font-weight: 600; }
- 
+
   ul.plain { margin: 0; padding-left: 18px; }
   ul.plain li { margin-bottom: 8px; }
   ul.plain li:last-child { margin-bottom: 0; }
@@ -407,23 +264,23 @@ Charlotte sleep quick reference · HTML
     content: "\00D7"; position: absolute; left: 4px; top: 8px;
     color: var(--warn); font-family: var(--mono);
   }
- 
+
   .ladder { display: flex; flex-direction: column; gap: 6px; }
   .rung { display: flex; gap: 10px; align-items: flex-start; padding: 9px 10px; background: var(--surface-2); border-radius: 8px; }
   .rung span { font-family: var(--mono); font-size: 11px; color: var(--sage); padding-top: 3px; }
   .rung.avoid span { color: var(--warn); }
- 
+
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   td { padding: 8px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
   tr:last-child td { border-bottom: 0; }
   td:first-child { font-family: var(--mono); font-size: 12px; color: var(--sage); white-space: nowrap; padding-right: 12px; width: 1%; }
   td.warnrow { color: var(--amber); }
- 
+
   .foot { padding: 26px var(--pad) 10px; font-size: 12px; color: var(--ink-faint); line-height: 1.6; }
   .hide { display: none; }
   :focus-visible { outline: 2px solid var(--sage); outline-offset: 2px; }
 </style>
- 
+
 <div id="gate" class="gate hide">
   <div class="gatebox">
     <div class="gatetitle">Set up this phone</div>
@@ -436,7 +293,7 @@ Charlotte sleep quick reference · HTML
     <p class="gatehint" id="gateMsg"></p>
   </div>
 </div>
- 
+
 <div id="editModal" class="gate hide">
   <div class="gatebox">
     <div class="gatetitle" id="editTitle"></div>
@@ -447,7 +304,7 @@ Charlotte sleep quick reference · HTML
     <button class="btn" id="editCancel" style="margin-top:8px;width:100%">Cancel</button>
   </div>
 </div>
- 
+
 <div id="app">
   <div class="bar">
     <div class="bar-head">
@@ -462,7 +319,7 @@ Charlotte sleep quick reference · HTML
       <button class="mode" role="tab" data-mode="ref" aria-selected="false" id="tabRef">Reference</button>
     </div>
   </div>
- 
+
   <div class="clockwrap" id="clockwrap">
     <div class="evtitle" id="evTitle"></div>
     <div class="seqmeta" id="seqMeta"></div>
@@ -478,45 +335,45 @@ Charlotte sleep quick reference · HTML
       </div>
     </div>
   </div>
- 
+
   <div class="body" id="content"></div>
- 
+
   <div class="foot">
     Reorganized from Lindsay Lewis Sleep's plan for Charlotte. No advice added or changed.<br>
     Health questions &rarr; your family doctor. Voxer for plan questions, Mon&ndash;Sat 8&ndash;6.
   </div>
 </div>
- 
+
 <script>
 (function () {
- 
+
   /* ==================================================================
      CONFIG — the PIN is NOT stored here. Each person enters it once on
      their own phone, so this file is safe to host publicly.
      ================================================================== */
   var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbycadn2BK4i-UnHj9ndKe7eAq01QHAsPIFTBpaBgt7fxFqYPg4zrV-ujnrL2ozjVlra/exec";
   /* ================================================================== */
- 
+
   /* Remembered per device. Falls back to memory if storage is blocked. */
   var store = {
     get: function (k) { try { return localStorage.getItem(k); } catch (e) { return this._m ? this._m[k] : null; } },
     set: function (k, v) { try { localStorage.setItem(k, v); } catch (e) { this._m = this._m || {}; this._m[k] = v; } },
     _m: null
   };
- 
- 
+
+
   /* ---------- interface strings ---------- */
- 
+
   var UI = {
     en: {
       tabNow: "Now", tabRef: "Reference",
       light: ["DAY MODE", "NIGHT MODE"], langBtn: "TAGALOG",
- 
+
       gateTitle: "Set up this phone", gateHint: "Just once. Ask Patrick for the PIN.",
       gateName: "Your name", gatePin: "PIN", gateSave: "Save",
       gateBoth: "Both fields are needed.", gateBad: "That PIN was rejected. Try again.",
       setUpFor: function (w) { return "Set up for " + w; },
- 
+
       ready: "Ready to log", retry: "Retry",
       missedTitle: "Missed \u2014 tap to fill in",
       missSet: "Set", missSave: "Save", missCancel: "Cancel",
@@ -534,12 +391,12 @@ Charlotte sleep quick reference · HTML
       held: function (n) { return "Offline \u2014 " + n + " held"; },
       noUrl: function (n) { return n + " held \u2014 no script URL set"; },
       waiting: "Waiting for the log\u2026",
- 
+
       evWake: "Wake-up", evNap1: "Nap 1", evNap2: "Nap 2", evBed: "Bedtime",
       evNight: "Night sleep", evDone: "Day complete", evNightWake: "Night waking",
       sufNext: " \u00b7 next", sufLate: " \u00b7 overdue", sufAsleep: " \u00b7 asleep",
       sufCrib: " \u00b7 in the crib", sufSettling: " \u00b7 settling",
- 
+
       doneMsg: "Everything for this plan night is logged.",
       scheduled: function (t) { return "Scheduled <b>" + t + "</b>"; },
       thenNext: function (n, t) { return "then " + n.toLowerCase() + " <b>" + t + "</b>"; },
@@ -549,7 +406,7 @@ Charlotte sleep quick reference · HTML
       totalIs: function (t) { return "Total <b>" + t + "</b>"; },
       tryIs: function (n) { return "try <b>" + n + "</b>"; },
       leftIs: function (t) { return "<b>" + t + "</b> left"; },
- 
+
       startHint: "Finish the routine, then start. The wait begins when she starts crying.",
       settleHint: "Waiting for her to settle. Start the 10-minute wait when she starts crying.",
       wakeHint: "Nothing before <b>06:00</b> counts as morning. After 05:30, no visits \u2014 hold out as close to 06:00 as you can.",
@@ -558,12 +415,12 @@ Charlotte sleep quick reference · HTML
       nightUseRow: "If she wakes, use <b>Woke</b> below.",
       napOver: "<b>Over the cap. Wake her now</b> \u2014 open the door, kill the white noise, open the curtains.",
       nightOver: "<b>12 hours.</b> Time to wake her.",
- 
+
       holdTitle: "Holding for 06:00", holdMorning: "Morning",
       holdMeta: "Awake before 06:00 &middot; no visits",
       holdWait: "Leave her without visits until as close to <b>06:00</b> as you can.",
       holdDone: "<b>Morning.</b> Take her out of the room and feed in a bright environment.",
- 
+
       loop: {
         wait: "Wait. Don't go in.",
         waitDone: "<b>Go in for 30&ndash;60 seconds.</b> Voice first, then touch.",
@@ -576,30 +433,30 @@ Charlotte sleep quick reference · HTML
         breakDone: "<b>Second try.</b> Repeat the nap routine, crib wide awake.",
         exhausted: "<b>Emergency nap.</b> Stroller walk or a drive \u2014 that counts as the nap."
       },
- 
+
       bStart: "Put her in the crib", bStartWait: "Start the wait",
       bAsleep: "She's asleep", bWoke: "She woke", bUp: "Up for the day",
       bBackAsleep: "Back asleep", bStop: "Stop", bQuiet: "She quieted",
       bCrying: "Crying again", bCheckin: "Check in \u2014 60 sec", bLeft: "Left the room",
       bReset: "Do a reset", bKeep: "Keep going", bBreak: "Start 15-min break",
       bSecond: "Second try", bEmergency: "Emergency nap",
- 
+
       lIn: "In crib", lAsleep: "Asleep", lAwake: "Awake", lNote: "Note",
       lFed: "Fed", lCry: "Crying /10", lRate: "Night /10", lWoke: "Woke",
       pNote: "Note for the log", pFed: "Duration or ounces (optional)",
       pCry: "Crying scale 1\u201310 (10 = hysterical)",
       pRate: "Rate the night 1\u201310 (10 = excellent)"
     },
- 
+
     tl: {
       tabNow: "Ngayon", tabRef: "Gabay",
       light: ["ARAW", "GABI"], langBtn: "ENGLISH",
- 
+
       gateTitle: "I-set up ang teleponong ito", gateHint: "Isang beses lang. Hingin kay Patrick ang PIN.",
       gateName: "Pangalan mo", gatePin: "PIN", gateSave: "I-save",
       gateBoth: "Kailangan ang dalawang kahon.", gateBad: "Mali ang PIN. Subukan ulit.",
       setUpFor: function (w) { return "Naka-set up para kay " + w; },
- 
+
       ready: "Handa nang mag-log", retry: "Ulitin",
       missedTitle: "Nakaligtaan \u2014 pindutin para punan",
       missSet: "Ilagay", missSave: "I-save", missCancel: "Kanselahin",
@@ -617,12 +474,12 @@ Charlotte sleep quick reference · HTML
       held: function (n) { return "Walang koneksyon \u2014 " + n + " ang naghihintay"; },
       noUrl: function (n) { return n + " naghihintay \u2014 walang script URL"; },
       waiting: "Hinihintay ang log\u2026",
- 
+
       evWake: "Paggising", evNap1: "Nap 1", evNap2: "Nap 2", evBed: "Oras ng tulog",
       evNight: "Tulog sa gabi", evDone: "Tapos na ang araw", evNightWake: "Paggising sa gabi",
       sufNext: " \u00b7 susunod", sufLate: " \u00b7 lampas na", sufAsleep: " \u00b7 tulog",
       sufCrib: " \u00b7 nasa crib", sufSettling: " \u00b7 pinapatulog",
- 
+
       doneMsg: "Naitala na ang lahat para sa gabing ito.",
       scheduled: function (t) { return "Nakatakda <b>" + t + "</b>"; },
       thenNext: function (n, t) { return "tapos " + n.toLowerCase() + " <b>" + t + "</b>"; },
@@ -632,7 +489,7 @@ Charlotte sleep quick reference · HTML
       totalIs: function (t) { return "Kabuuan <b>" + t + "</b>"; },
       tryIs: function (n) { return "subok <b>" + n + "</b>"; },
       leftIs: function (t) { return "<b>" + t + "</b> natitira"; },
- 
+
       startHint: "Tapusin ang routine, tapos simulan. Magsisimula ang paghihintay kapag umiyak siya.",
       settleHint: "Hinihintay siyang makatulog. Simulan ang 10-minutong paghihintay kapag umiyak siya.",
       wakeHint: "Walang itinuturing na umaga bago mag-<b>06:00</b>. Pagkatapos ng 05:30, huwag nang pumasok \u2014 maghintay hangga't malapit sa 06:00.",
@@ -641,12 +498,12 @@ Charlotte sleep quick reference · HTML
       nightUseRow: "Kung magising siya, pindutin ang <b>Gising</b> sa ibaba.",
       napOver: "<b>Lampas na sa hangganan. Gisingin na siya</b> \u2014 buksan ang pinto, patayin ang white noise, buksan ang kurtina.",
       nightOver: "<b>12 oras na.</b> Oras nang gisingin siya.",
- 
+
       holdTitle: "Naghihintay hanggang 06:00", holdMorning: "Umaga na",
       holdMeta: "Gising bago mag-06:00 &middot; huwag pumasok",
       holdWait: "Huwag pumasok. Maghintay hangga't malapit sa <b>06:00</b>.",
       holdDone: "<b>Umaga na.</b> Ilabas siya sa kwarto at pakainin sa maliwanag na lugar.",
- 
+
       loop: {
         wait: "Maghintay. Huwag pumasok.",
         waitDone: "<b>Pumasok ng 30&ndash;60 segundo.</b> Boses muna, tapos haplos.",
@@ -659,14 +516,14 @@ Charlotte sleep quick reference · HTML
         breakDone: "<b>Pangalawang subok.</b> Ulitin ang nap routine, crib na gising na gising.",
         exhausted: "<b>Emergency nap.</b> Maglakad gamit ang stroller o mag-drive \u2014 bilang iyon na nap."
       },
- 
+
       bStart: "Ilagay siya sa crib", bStartWait: "Simulan ang paghihintay",
       bAsleep: "Tulog na siya", bWoke: "Gising na siya", bUp: "Gising na para sa araw",
       bBackAsleep: "Bumalik sa tulog", bStop: "Itigil", bQuiet: "Tumahimik siya",
       bCrying: "Umiiyak ulit", bCheckin: "Pumasok \u2014 60 segundo", bLeft: "Lumabas na ako",
       bReset: "Mag-reset", bKeep: "Ipagpatuloy", bBreak: "Magpahinga ng 15 minuto",
       bSecond: "Pangalawang subok", bEmergency: "Emergency nap",
- 
+
       lIn: "Sa crib", lAsleep: "Tulog", lAwake: "Gising", lNote: "Tala",
       lFed: "Kumain", lCry: "Iyak /10", lRate: "Gabi /10", lWoke: "Gising",
       pNote: "Tala para sa log", pFed: "Tagal o onsa (opsyonal)",
@@ -674,10 +531,10 @@ Charlotte sleep quick reference · HTML
       pRate: "Bigyan ng marka ang gabi 1\u201310 (10 = napakaganda)"
     }
   };
- 
+
   var lang = store.get("sleeplog.lang") || "en";
   function S() { return UI[lang]; }
- 
+
   var MODES_EN = {
     bedtime: {
       html: [
@@ -719,7 +576,7 @@ Charlotte sleep quick reference · HTML
           '</ol><p style="color:var(--ink-dim);font-size:14px;margin:12px 0 0">There\'s no hard time limit. If she\'s making progress, keep going.</p>')
       ].join("")
     },
- 
+
     nap: {
       html: [
         '<div class="note">Nap 1 around 9:30, Nap 2 around 2:00&ndash;2:30. Nap training starts the day <b>after</b> nights begin.</div>',
@@ -763,7 +620,7 @@ Charlotte sleep quick reference · HTML
           '</ul>')
       ].join("")
     },
- 
+
     night: {
       html: [
         '<div class="note">She wakes fully between sleep cycles, makes noise, cries, and often resettles alone. Going in fast takes that chance away.</div>',
@@ -790,7 +647,7 @@ Charlotte sleep quick reference · HTML
           '<p style="margin:0">Pick her up, out of the sleep sack, walk until calm but not asleep, short routine under dim red light, back in the crib awake.</p>')
       ].join("")
     },
- 
+
     early: {
       html: [
         '<div class="note">Nothing before <b>6:00 AM</b> counts as morning. Expected wake is 10.5&ndash;12 hrs after bedtime.</div>',
@@ -811,7 +668,7 @@ Charlotte sleep quick reference · HTML
           '</ul>')
       ].join("")
     },
- 
+
     ref: {
       html: [
         details("Daily schedule", true,
@@ -889,7 +746,7 @@ Charlotte sleep quick reference · HTML
       ].join("")
     }
   };
- 
+
   var MODES_TL = {
     bedtime: {
       html: [
@@ -931,7 +788,7 @@ Charlotte sleep quick reference · HTML
           '</ol><p style="color:var(--ink-dim);font-size:14px;margin:12px 0 0">Walang mahigpit na hangganan ng oras. Kung umuunlad siya, ipagpatuloy.</p>')
       ].join("")
     },
- 
+
     nap: {
       html: [
         '<div class="note">Nap 1 mga 9:30, Nap 2 mga 2:00&ndash;2:30. Ang nap training ay nagsisimula sa araw <b>pagkatapos</b> magsimula ang gabi.</div>',
@@ -975,7 +832,7 @@ Charlotte sleep quick reference · HTML
           '</ul>')
       ].join("")
     },
- 
+
     night: {
       html: [
         '<div class="note">Natural na nagigising siya sa pagitan ng sleep cycles, nag-iingay, umiiyak, at kadalasan ay nakakabalik sa tulog mag-isa. Ang mabilis na pagpasok ay nag-aalis ng pagkakataong iyon.</div>',
@@ -1002,7 +859,7 @@ Charlotte sleep quick reference · HTML
           '<p style="margin:0">Buhatin siya, tanggalin ang sleep sack, maglakad hanggang kumalma pero hindi tulog, maikling routine sa malamlam na pulang ilaw, ibalik sa crib na gising.</p>')
       ].join("")
     },
- 
+
     early: {
       html: [
         '<div class="note">Walang itinuturing na umaga bago mag-<b>6:00 AM</b>. Ang inaasahang gising ay 10.5&ndash;12 oras pagkatapos ng bedtime.</div>',
@@ -1023,7 +880,7 @@ Charlotte sleep quick reference · HTML
           '</ul>')
       ].join("")
     },
- 
+
     ref: {
       html: [
         details("Iskedyul sa araw", true,
@@ -1101,9 +958,9 @@ Charlotte sleep quick reference · HTML
       ].join("")
     }
   };
- 
+
   function M() { return lang === "tl" ? MODES_TL : MODES_EN; }
- 
+
   function li(t, sub, final) {
     return '<li' + (final ? ' class="final"' : '') + '>' + t + (sub ? '<small>' + sub + '</small>' : '') + '</li>';
   }
@@ -1113,20 +970,20 @@ Charlotte sleep quick reference · HTML
   function details(title, open, inner) {
     return '<details' + (open ? ' open' : '') + '><summary>' + title + '</summary><div class="inner">' + inner + '</div></details>';
   }
- 
+
   /* ==================================================================
      THE DAY — four events, always in this order. Adjust the times here.
      Lindsay's plan writes nap 2 as 2:00/2:30 and the bedtime routine
      starting at 7:00; these are the in-crib targets.
      ================================================================== */
- 
+
   var DAY = {
     wakeAt:  7 * 60,            // 07:00
     nap1At:  9 * 60 + 30,       // 09:30
     nap2At: 14 * 60 + 30,       // 14:30
     bedAt:  19 * 60 + 30,       // 19:30
     minWake: 180,               // never put her down inside 3 hrs of waking
- 
+
     singleNapMax: 120,          // a single nap, earlier in the day
     daytimeMax:   210,          // 3.5 hrs across both naps
     lastNapEndBy: 16 * 60 + 30, // awake from the last nap by 16:30
@@ -1134,7 +991,7 @@ Charlotte sleep quick reference · HTML
     morningFloor:  6 * 60,      // nothing before 06:00 is morning
     holdFrom:      5 * 60 + 30 // from 05:30, no visits at all — just hold out
   };
- 
+
   /* The settling loop. Naps run it inside an attempt window. */
   var SEQ = {
     nap: {
@@ -1159,7 +1016,7 @@ Charlotte sleep quick reference · HTML
       wait: 600, checkin: 60, resetAfter: 3600, attempts: null
     }
   };
- 
+
   /* Rebuilt on a language switch so the labels and prompts follow it. */
   function logButtons() {
     var t = S();
@@ -1190,19 +1047,19 @@ Charlotte sleep quick reference · HTML
       ref: []
     };
   }
- 
+
   var mode = "now", timer = null, remain = null, running = false, wake = null;
   var queue = [], sending = false, sheetState = null, contentKey = null;
   var $ = function (id) { return document.getElementById(id); };
- 
+
   /* ---------- clock helpers ---------- */
- 
+
   function nowSec() {
     var d = new Date();
     return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
   }
   function nowMin() { return nowSec() / 60; }
- 
+
   function fmt(s) {
     s = Math.max(0, Math.round(s));
     if (s >= 3600) {
@@ -1210,34 +1067,34 @@ Charlotte sleep quick reference · HTML
     }
     return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
   }
- 
+
   function dur(mins) {
     if (mins < 0) mins = 0;
     var h = Math.floor(mins / 60), m = Math.floor(mins % 60);
     return h ? h + "h " + String(m).padStart(2, "0") + "m" : m + "m";
   }
- 
+
   function hhmm(mins) {
     mins = ((Math.round(mins) % 1440) + 1440) % 1440;
     return String(Math.floor(mins / 60)).padStart(2, "0") + ":" + String(mins % 60).padStart(2, "0");
   }
- 
+
   function elapsedSince(start, now) {
     var e = now - start;
     return e < 0 ? e + 1440 : e;
   }
- 
+
   function clockOf(d) {
     return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
   }
- 
+
   /* ---------- where are we in the day? ----------
      The sheet's own row order is the sequence. Walk it and stop at the
      first cell still showing 0:00 — that is the next thing to record.
      This catches states a field-by-field check misses, like "in the crib
      but not asleep yet", and it means both phones agree without either
      of them holding local state. */
- 
+
   var STEPS = [
     { row: 11, grp: null,   field: "morningWake", event: "wakeup",  kind: "wakeup",  title: S().evWake, at: "wakeAt", act: "morning_awake" },
     { row: 14, grp: "nap1", field: "crib",        event: "nap1",    kind: "nap",     title: S().evNap1, at: "nap1At", act: "nap_crib" },
@@ -1250,20 +1107,20 @@ Charlotte sleep quick reference · HTML
     { row: 31, grp: "bed",  field: "asleep",      event: "bedtime", kind: "bedtime", title: S().evBed, at: "bedAt", act: "bed_asleep" },
     { row: 32, grp: "bed",  field: "awake",       event: "night",   kind: "bedtime", title: S().evNight, at: "wakeAt", act: "morning_awake" }
   ];
- 
+
   function valueAt(step) {
     var s = sheetState;
     if (!s) return null;
     return step.grp ? s[step.grp][step.field] : s[step.field];
   }
- 
+
   /* The step we're waiting on, plus the times already recorded for it. */
   function lastFilledIndex() {
     var last = -1;
     for (var i = 0; i < STEPS.length; i++) if (valueAt(STEPS[i]) !== null) last = i;
     return last;
   }
- 
+
   /* Blanks behind the frontier are entries someone forgot, not the thing
      we're waiting on. Listing them separately stops one missed tap from
      freezing the whole day on a step that has already passed. */
@@ -1271,13 +1128,13 @@ Charlotte sleep quick reference · HTML
      entries only count as missed after 23:00, since the night is still
      running before that. */
   var PAST_DUE = { wakeup: "nap1At", nap1: "nap2At", nap2: "bedAt", bedtime: null, night: null };
- 
+
   function isPastDue(step) {
     var key = PAST_DUE[step.event];
     if (key === null) return step.event === "bedtime" && nowMin() >= 23 * 60;
     return nowMin() >= DAY[key];
   }
- 
+
   function missedSteps() {
     var last = lastFilledIndex(), out = [];
     for (var i = 0; i < STEPS.length; i++) {
@@ -1286,18 +1143,18 @@ Charlotte sleep quick reference · HTML
     }
     return out;
   }
- 
+
   function currentEvent() {
     if (!sheetState) return null;
- 
+
     var step = null;
     for (var i = lastFilledIndex() + 1; i < STEPS.length; i++) {
       if (valueAt(STEPS[i]) === null) { step = STEPS[i]; break; }
     }
     if (!step) return { key: "done", kind: "bedtime", title: S().evDone, phase: "done", at: DAY.bedAt };
- 
+
     var grp = step.grp ? sheetState[step.grp] : null;
- 
+
     return {
       key:   step.event,
       kind:  step.kind,
@@ -1313,7 +1170,7 @@ Charlotte sleep quick reference · HTML
       asleepAt: grp ? grp.asleep : null
     };
   }
- 
+
   /* The nap anchors are targets with a floor under them — if she woke late,
      holding the anchor would put her down inside a 3-hour wake window.
      Bedtime is deliberately exempt: it stays fixed, and a late nap 2 is
@@ -1324,19 +1181,19 @@ Charlotte sleep quick reference · HTML
     else if (ev.key === "nap2" && s.nap1.awake !== null) floor = s.nap1.awake + DAY.minWake;
     return floor === null ? ev.at : Math.max(ev.at, floor);
   }
- 
+
   function nextAfter(ev) {
     if (ev.key === "wakeup")  return { title: S().evNap1, at: DAY.nap1At };
     if (ev.key === "nap1")    return { title: S().evNap2, at: DAY.nap2At };
     if (ev.key === "nap2")    return { title: S().evBed, at: DAY.bedAt };
     return { title: S().evWake, at: DAY.wakeAt };
   }
- 
+
   /* Cap on a sleep in progress, in minutes. */
   function capFor(ev) {
     if (ev.kind !== "nap") return DAY.nightMax;
     if (ev.key === "nap1") return DAY.singleNapMax;
- 
+
     var used = 0;
     if (sheetState.nap1.asleep !== null && sheetState.nap1.awake !== null) {
       used = elapsedSince(sheetState.nap1.asleep, sheetState.nap1.awake);
@@ -1344,7 +1201,7 @@ Charlotte sleep quick reference · HTML
     var from = ev.asleepAt !== null ? ev.asleepAt : ev.at;
     return Math.max(0, Math.min(DAY.daytimeMax - used, DAY.lastNapEndBy - from));
   }
- 
+
   /* Which block of notes belongs under the current event. */
   function contentFor(ev) {
     if (!ev) return "nap";
@@ -1352,24 +1209,24 @@ Charlotte sleep quick reference · HTML
     if (ev.key === "night" || ev.key === "done") return "night";
     return ev.kind === "nap" ? "nap" : "bedtime";
   }
- 
+
   /* ---------- timer plumbing ---------- */
- 
+
   function stop() { running = false; clearInterval(timer); timer = null; releaseWake(); }
   function buzz() { if (navigator.vibrate) { try { navigator.vibrate([120, 90, 120]); } catch (e) {} } }
- 
+
   function requestWake() {
     if (!navigator.wakeLock) return;
     navigator.wakeLock.request("screen").then(function (w) { wake = w; }).catch(function () {});
   }
   function releaseWake() { if (wake) { try { wake.release(); } catch (e) {} wake = null; } }
- 
+
   /* Countdowns are anchored to a wall-clock end time, not to a counter that
      ticks down. Background tabs and locked screens throttle or suspend
      intervals, so a decrementing counter silently pauses — the 10-minute
      wait would never finish while the phone was in your pocket. */
   var endAt = null;
- 
+
   function run(secs) {
     stop();
     endAt = Date.now() + secs * 1000;
@@ -1379,7 +1236,7 @@ Charlotte sleep quick reference · HTML
     requestWake();
     render();
   }
- 
+
   function tickTimer() {
     if (endAt === null) return;
     var left = Math.ceil((endAt - Date.now()) / 1000);
@@ -1394,41 +1251,41 @@ Charlotte sleep quick reference · HTML
     }
     render();
   }
- 
+
   /* ---------- the settling loop ---------- */
- 
+
   var seq = null;   // { cfg, kind, phase, startedAt, attempt, attemptStartedAt }
- 
+
   function seqElapsed()     { return seq ? Math.floor((Date.now() - seq.startedAt) / 1000) : 0; }
   function attemptElapsed() { return seq && seq.attemptStartedAt ? Math.floor((Date.now() - seq.attemptStartedAt) / 1000) : 0; }
   function attemptLimit()   { return seq && seq.cfg.attempts ? seq.cfg.attempts[seq.attempt] : null; }
- 
+
   function phase(p, secs) {
     seq.phase = p;
     if (secs === null) { stop(); endAt = null; remain = null; render(); }
     else run(secs);
   }
- 
+
   function seqStart(kind) {
     logAction(SEQ[kind].startAction, SEQ[kind].startLabel);
     seqResume(kind);
   }
- 
+
   /* Same loop, but she's already in the crib — don't log it twice. */
   function seqResume(kind) {
     var cfg = SEQ[kind];
     seq = { cfg: cfg, kind: kind, phase: "wait", startedAt: Date.now(), attempt: 0, attemptStartedAt: Date.now() };
     run(cfg.wait);
   }
- 
+
   function seqAsleep() {
     var cfg = seq.cfg;
     logAction(cfg.asleepAction, cfg.asleepLabel);
     seqStop();
   }
- 
+
   function seqStop() { stop(); endAt = null; seq = null; remain = null; render(); }
- 
+
   function onExpire() {
     if (!seq) return;
     var over = attemptLimit() !== null && attemptElapsed() >= attemptLimit();
@@ -1436,14 +1293,14 @@ Charlotte sleep quick reference · HTML
     else if (seq.phase === "checkin") seq.phase = "checkinDone";
     else if (seq.phase === "break")   seq.phase = "breakDone";
   }
- 
+
   /* The attempt window can run out mid-wait, not only at an expiry. */
   function watchAttempt() {
     if (!seq || !seq.cfg.attempts) return;
     if (seq.phase !== "wait" && seq.phase !== "checkin") return;
     if (attemptElapsed() >= attemptLimit()) { stop(); buzz(); phase("attemptDone", null); }
   }
- 
+
   var TEXT = {
     wait:        "Wait. Don't go in.",
     waitDone:    "<b>Go in for 30&ndash;60 seconds.</b> Voice first, then touch.",
@@ -1455,13 +1312,13 @@ Charlotte sleep quick reference · HTML
     breakDone:   "<b>Second try.</b> Repeat the nap routine, crib wide awake.",
     exhausted:   "<b>Emergency nap.</b> Stroller walk or a drive &mdash; that counts as the nap."
   };
- 
+
   /* ---------- render ---------- */
- 
+
   /* Rebuild the buttons only when they actually change. This runs once a
      second; replacing the DOM every tick swallows taps that land mid-frame. */
   var controlsSig = null;
- 
+
   function setControls(list) {
     var c = $("controls");
     var sig = list.map(function (b) { return b.label + "|" + (b.cls || ""); }).join("~");
@@ -1475,22 +1332,22 @@ Charlotte sleep quick reference · HTML
       if (list[i]) el.onclick = list[i].fn;
     });
   }
- 
+
   function setContent(key) {
     if (contentKey === key) return;
     contentKey = key;
     $("content").innerHTML = M()[key].html;
   }
- 
+
   /* Avoid rewriting identical HTML every tick — it forces layout and
      can interrupt a tap in progress. */
   function put(el, html) { if (el.innerHTML !== html) el.innerHTML = html; }
   function putText(el, txt) { if (el.textContent !== txt) el.textContent = txt; }
   function putClass(el, cls) { if (el.className !== cls) el.className = cls; }
- 
+
   function render() {
     var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
- 
+
     if (mode === "ref") {
       $("clockwrap").classList.add("hide");
       setContent("ref");
@@ -1499,7 +1356,7 @@ Charlotte sleep quick reference · HTML
       return;
     }
     $("clockwrap").classList.remove("hide");
- 
+
     /* --- the Now tab --- */
     var ev = currentEvent();
     if (!ev) {
@@ -1514,14 +1371,14 @@ Charlotte sleep quick reference · HTML
       renderLogButtons("nap");
       return;
     }
- 
+
     setContent(contentFor(ev));
     renderLogButtons(
       (ev.key === "night" || isNightHours()) ? "night"
         : ev.kind === "wakeup" ? "wakeup"
         : ev.kind);
     renderMissed();
- 
+
     /* A settling loop in progress takes over the display. */
     if (seq) {
       renderLoop(seq.kind,
@@ -1531,7 +1388,7 @@ Charlotte sleep quick reference · HTML
         "");
       return;
     }
- 
+
     if (ev.phase === "done") {
       putText(title, S().evDone);
       putClass(title, "evtitle");
@@ -1542,7 +1399,7 @@ Charlotte sleep quick reference · HTML
       setControls([]);
       return;
     }
- 
+
     /* In the crib, not asleep yet — either phone can pick up the loop. */
     if (ev.phase === "settling") {
       var down = ev.cribAt !== null ? ev.cribAt : nowMin();
@@ -1558,19 +1415,19 @@ Charlotte sleep quick reference · HTML
       ]);
       return;
     }
- 
+
     if (ev.phase === "sleeping") {
       var from  = ev.asleepAt !== null ? ev.asleepAt : ev.at;
       var slept = elapsedSince(from, nowMin());
       var cap   = capFor(ev);
       var over  = slept >= cap;
- 
+
       putText(title, ev.title + S().sufAsleep);
       putClass(title, "evtitle" + (over ? " over" : ""));
       put(meta, S().downAt(hhmm(from)));
       putText(clock, fmt(slept * 60));
       putClass(clock, "clock" + (over ? " done flash" : ""));
- 
+
       if (over) {
         put(st, ev.kind === "nap"
           ? S().napOver
@@ -1580,7 +1437,7 @@ Charlotte sleep quick reference · HTML
       } else {
         put(st, S().nightMax(hhmm(from + cap)));
       }
- 
+
       if (ev.kind === "nap") {
         setControls([
           { label: S().bWoke, cls: "primary", fn: function () { logAction("nap_awake", S().lAwake); } },
@@ -1588,14 +1445,14 @@ Charlotte sleep quick reference · HTML
         ]);
         return;
       }
- 
+
       /* Overnight, one button — the clock decides which of the plan's three
          responses applies:
            before 05:30   a night waking, with check-ins
            05:30–05:59    no visits at all, hold out for 06:00
            06:00 onward   morning */
       if (holding) { renderHold(); return; }
- 
+
       /* Nothing prominent to tap overnight — a big button at 2am is how a
          night gets ended by accident. Night wakings go through the manual
          row below; this appears only once it is actually morning. */
@@ -1609,25 +1466,25 @@ Charlotte sleep quick reference · HTML
       }
       return;
     }
- 
+
     /* Upcoming. */
     var target = targetFor(ev);
     var secs = target * 60 - nowSec();
     var late = secs < 0;
     var then = nextAfter(ev);
- 
+
     putText(title, ev.title + (late ? S().sufLate : S().sufNext));
     putClass(title, "evtitle" + (late ? " due" : ""));
     putText(clock, fmt(Math.abs(secs)));
     putClass(clock, "clock" + (late ? " done" : ""));
- 
+
     var bits = [S().scheduled(hhmm(ev.at))];
     if (target !== ev.at) bits.push(S().windowNote(hhmm(target)));
     if (ev.key !== "wakeup") bits.push(S().thenNext(then.title, hhmm(then.at)));
     var since = awakeSince();
     if (since !== null) bits.push(S().awakeFor(dur(elapsedSince(since, nowMin()))));
     put(meta, bits.join(" &middot; "));
- 
+
     if (ev.kind === "wakeup") {
       put(st, S().wakeHint);
       setControls([{ label: "Up for the day", cls: "primary", fn: function () { logAction("morning_awake", S().bUp); } }]);
@@ -1636,7 +1493,7 @@ Charlotte sleep quick reference · HTML
       setControls([{ label: S().bStart, cls: "primary", fn: function () { seqStart(ev.kind); } }]);
     }
   }
- 
+
   function fieldLabel(step) {
     var t = S();
     if (step.field === "morningWake") return t.fWake;
@@ -1644,7 +1501,7 @@ Charlotte sleep quick reference · HTML
     if (step.field === "asleep") return t.fAsleep;
     return t.fAwake;
   }
- 
+
   /* A missed entry is filled by sending the same action with a corrected
      timestamp — the script derives the cell from the time, so nothing new
      is needed on that side. */
@@ -1652,19 +1509,19 @@ Charlotte sleep quick reference · HTML
     var box = $("missed"), list = missedSteps();
     if (!list.length) { box.classList.add("hide"); box.innerHTML = ""; return; }
     box.classList.remove("hide");
- 
+
     box.innerHTML = "<h4>" + S().missedTitle + "</h4>" + list.map(function (st) {
       return '<div class="missrow"><span>' + st.title + " \u00b7 " + fieldLabel(st) +
              '</span><button class="missbtn">' + S().missSet + "</button></div>";
     }).join("");
- 
+
     Array.prototype.forEach.call(box.querySelectorAll(".missbtn"), function (b, i) {
       b.onclick = function () { fillMissed(list[i]); };
     });
   }
- 
+
   var editing = null;
- 
+
   function fillMissed(step) {
     editing = step;
     var what = step.title + " \u00b7 " + fieldLabel(step);
@@ -1673,38 +1530,38 @@ Charlotte sleep quick reference · HTML
     putText($("editLabel"), S().missTime);
     $("editSave").textContent = S().missSave;
     $("editCancel").textContent = S().missCancel;
- 
+
     /* Seed with a sensible default so it is one spin, not a blank field. */
     var seed = valueAt(step);
     if (seed === null) seed = Math.min(nowMin(), DAY[step.at]);
     $("editTime").value = hhmm(seed);
- 
+
     $("editModal").classList.remove("hide");
     $("editTime").focus();
   }
- 
+
   function closeEdit() { editing = null; $("editModal").classList.add("hide"); }
- 
+
   $("editCancel").onclick = closeEdit;
- 
+
   $("editSave").onclick = function () {
     if (!editing) return;
     var v = $("editTime").value;
     var m = v && v.match(/^(\d{1,2}):(\d{2})$/);
     if (!m) { closeEdit(); return; }
- 
+
     var h = Number(m[1]), mins = Number(m[2]);
     var when = new Date();
     when.setHours(h, mins, 0, 0);
     /* An early-hours entry typed during the day belongs to last night. */
     if (h < 6 && nowMin() >= 6 * 60) when.setDate(when.getDate() - 1);
- 
+
     queue.push({ ts: when.toISOString(), mode: mode, action: editing.act, value: "", note: "", who: WHO });
     status(S().sending(editing.title, hhmm(h * 60 + mins)));
     closeEdit();
     flush();
   };
- 
+
   function awakeSince() {
     var s = sheetState;
     if (!s) return null;
@@ -1713,7 +1570,7 @@ Charlotte sleep quick reference · HTML
     if (s.morningWake !== null)      return s.morningWake;
     return null;
   }
- 
+
   /* What a night waking does depends on the clock. Shared so the manual row
      and any future caller can't drift apart. */
   function onNightWake() {
@@ -1726,45 +1583,45 @@ Charlotte sleep quick reference · HTML
       seqStart("night");
     }
   }
- 
+
   /* Short-nap rule: if she wakes early, leave her 10 minutes to reconnect
      rather than ending the nap. If she is still awake when that expires it
      runs the same check-in loop as bedtime. Nothing is logged unless she
      stays awake — a stir that resolves leaves the nap untouched. */
- 
+
   function isNightHours() {
     var m = nowMin();
     return m >= 18 * 60 || m < DAY.morningFloor;
   }
- 
+
   /* 05:30–06:00: the plan says no visits, so there is no check-in loop to
      run — just the wait, and the two ways it can end. */
   var holding = false;
- 
+
   function renderHold() {
     var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
     var left = DAY.morningFloor * 60 - nowSec();
- 
+
     putText(title, left > 0 ? S().holdTitle : S().holdMorning);
     putClass(title, "evtitle" + (left > 0 ? " due" : ""));
     put(meta, S().holdMeta);
     putText(clock, fmt(Math.abs(left)));
     putClass(clock, "clock" + (left > 0 ? "" : " done"));
- 
+
     put(st, left > 0
       ? S().holdWait
       : S().holdDone);
- 
+
     setControls([
       { label: S().bUp, cls: "primary", fn: function () { holding = false; logAction("morning_awake", S().bUp); } },
       { label: S().bBackAsleep, fn: function () { holding = false; logAction("night_waking", S().bBackAsleep); } }
     ]);
   }
- 
+
   function renderLoop(kind, headline, idleText) {
     var cfg = SEQ[kind];
     var title = $("evTitle"), meta = $("seqMeta"), clock = $("clock"), st = $("state");
- 
+
     if (!seq || seq.kind !== kind) {
       putText(title, headline);
       putClass(title, "evtitle");
@@ -1775,10 +1632,10 @@ Charlotte sleep quick reference · HTML
       setControls([{ label: S().bStart, cls: "primary", fn: function () { seqStart(kind); } }]);
       return;
     }
- 
+
     putText(title, headline + S().sufSettling);
     putClass(title, "evtitle");
- 
+
     var bits = [S().totalIs(fmt(seqElapsed()))];
     if (cfg.attempts) {
       bits.push(S().tryIs(seq.attempt + 1));
@@ -1787,22 +1644,22 @@ Charlotte sleep quick reference · HTML
       }
     }
     put(meta, bits.join(" &middot; "));
- 
+
     putText(clock, remain === null ? "--:--" : fmt(Math.max(0, remain)));
     putClass(clock, "clock" + (remain !== null && remain <= 0 ? " done flash" : ""));
- 
+
     var atReset = cfg.resetAfter && seqElapsed() >= cfg.resetAfter;
     put(st, S().loop[seq.phase === "waitDone" && atReset ? "resetOffer" : seq.phase] || "");
- 
+
     var asleep  = kind === "napstir"
       ? { label: S().bResettled, fn: seqStop }
       : { label: S().bAsleep, fn: seqAsleep };
- 
+
     var stopBtn = kind === "napstir"
       ? { label: S().bWoke, cls: "ghost", fn: function () { seqStop(); logAction("nap_awake", S().lAwake); } }
       : { label: S().bStop, cls: "ghost", fn: seqStop };
     var quiet   = { label: S().bQuiet, fn: function () { phase("quiet", null); } };
- 
+
     if (seq.phase === "wait")             setControls([asleep, quiet, stopBtn]);
     else if (seq.phase === "quiet") {
       put(st, S().loop.quiet);
@@ -1826,17 +1683,17 @@ Charlotte sleep quick reference · HTML
           : [{ label: S().bEmergency, cls: "primary", fn: function () { phase("exhausted", null); } }, stopBtn]);
     else setControls([asleep, stopBtn]);
   }
- 
+
   /* ---------- logging ---------- */
- 
+
   var lastEventAt = null, WHO = "", TOKEN = "";
- 
+
   function status(msg, cls) {
     $("logmsg").textContent = msg;
     $("logstat").className = "logstat" + (cls ? " " + cls : "");
     $("retryBtn").classList.toggle("hide", !queue.length);
   }
- 
+
   function push(action, value, note, label) {
     var now = new Date();
     queue.push({ ts: now.toISOString(), mode: mode, action: action, value: value || "", note: note || "", who: WHO });
@@ -1845,9 +1702,9 @@ Charlotte sleep quick reference · HTML
     if (navigator.vibrate) { try { navigator.vibrate(30); } catch (e) {} }
     flush();
   }
- 
+
   function logAction(action, label) { if (action) push(action, "", "", label); }
- 
+
   function log(def) {
     if (def.run) { def.run(); return; }
     var value = "", note = "";
@@ -1860,14 +1717,14 @@ Charlotte sleep quick reference · HTML
     }
     push(def.action, value, note, def.label);
   }
- 
+
   function flush() {
     if (sending || !queue.length) return;
     if (!SCRIPT_URL) { status(S().noUrl(queue.length), "bad"); return; }
- 
+
     sending = true;
     var batch = queue.slice();
- 
+
     fetch(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -1906,13 +1763,13 @@ Charlotte sleep quick reference · HTML
         status(S().held(queue.length), "bad");
       });
   }
- 
+
   var logKey = null;
- 
+
   function renderLogButtons(key) {
     if (key === logKey) return;
     logKey = key;
- 
+
     var defs = logButtons()[key] || [], row = $("logrow"), bar = $("logbar");
     if (!defs.length) { bar.classList.add("hide"); return; }
     bar.classList.remove("hide");
@@ -1922,7 +1779,7 @@ Charlotte sleep quick reference · HTML
     });
     if (!queue.length) status(S().ready);
   }
- 
+
   function fetchStatus() {
     if (!SCRIPT_URL || !TOKEN) return;
     fetch(SCRIPT_URL, { method: "GET", redirect: "follow" })
@@ -1930,9 +1787,9 @@ Charlotte sleep quick reference · HTML
       .then(function (res) { if (res && res.status) { sheetState = res.status; render(); } })
       .catch(function () {});
   }
- 
+
   /* ---------- wiring ---------- */
- 
+
   function setMode(m) {
     mode = m;
     contentKey = null; controlsSig = null; logKey = null;
@@ -1942,44 +1799,44 @@ Charlotte sleep quick reference · HTML
     render();
     window.scrollTo(0, 0);
   }
- 
+
   Array.prototype.forEach.call(document.querySelectorAll(".mode"), function (b) {
     b.onclick = function () { setMode(b.dataset.mode); };
   });
- 
+
   function applyLang() {
     var t = S();
     $("langToggle").textContent = t.langBtn;
     $("lightToggle").textContent = document.body.classList.contains("day") ? t.light[1] : t.light[0];
     $("tabNow").textContent = t.tabNow;
     $("tabRef").textContent = t.tabRef;
- 
+
     document.querySelector(".gatetitle").textContent = t.gateTitle;
     document.querySelector(".gatehint").textContent  = t.gateHint;
     document.querySelector('label[for="whoIn"]').textContent = t.gateName;
     document.querySelector('label[for="pinIn"]').textContent = t.gatePin;
     $("gateSave").textContent = t.gateSave;
     $("retryBtn").textContent = t.retry;
- 
+
     contentKey = null; controlsSig = null; logKey = null;
     render();
   }
- 
+
   $("langToggle").onclick = function () {
     lang = lang === "tl" ? "en" : "tl";
     store.set("sleeplog.lang", lang);
     applyLang();
   };
- 
+
   $("lightToggle").onclick = function () {
     var day = document.body.classList.toggle("day");
     this.textContent = day ? S().light[1] : S().light[0];
     document.querySelector('meta[name="theme-color"]').setAttribute("content", day ? "#E9EDEC" : "#12141A");
   };
- 
+
   $("retryBtn").onclick = flush;
   window.addEventListener("online", flush);
- 
+
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible") {
       if (running) requestWake();
@@ -1987,17 +1844,17 @@ Charlotte sleep quick reference · HTML
       fetchStatus();
     }
   });
- 
+
   /* Tick for the live count-up, and re-check the day every minute so the
      event advances on its own. */
   setInterval(function () { if (endAt !== null) tickTimer(); watchAttempt(); render(); }, 1000);
   setInterval(fetchStatus, 20000);
- 
+
   function showGate() {
     $("gate").classList.remove("hide");
     $("whoIn").value = WHO;
   }
- 
+
   $("gateSave").onclick = function () {
     var who = $("whoIn").value.trim(), pin = $("pinIn").value.trim();
     if (!who || !pin) { $("gateMsg").textContent = S().gateBoth; return; }
@@ -2008,18 +1865,16 @@ Charlotte sleep quick reference · HTML
     status(S().setUpFor(who));
     fetchStatus();
   };
- 
+
   $("pinIn").addEventListener("keydown", function (e) {
     if (e.key === "Enter") $("gateSave").click();
   });
- 
+
   TOKEN = store.get("sleeplog.pin") || "";
   WHO   = store.get("sleeplog.who") || "";
- 
+
   applyLang();
   setMode("now");
   if (!TOKEN) showGate(); else fetchStatus();
 })();
 </script>
- 
-
